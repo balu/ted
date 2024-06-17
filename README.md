@@ -16,5 +16,5 @@ Run
     ./ted <file>
 
 ted supports many of the emacs bindings. If you are unfamiliar with
-these, edit text as normal, use `C-x C-s` to save, and use `C-x C-q` to
+these, edit text as normal, use `C-x C-s` to save, and use `C-x C-c` to
 quit the editor.
