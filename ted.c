@@ -626,12 +626,12 @@ void goto_(struct position pos)
 
 void emit_cr()
 {
-	printf("\r");
+        printf("\r");
 }
 
 void emit_el()
 {
-	printf("\x1b[K");
+        printf("\x1b[K");
 }
 
 void emit_lf()
@@ -894,15 +894,18 @@ void emit_clear_screen()
 void reserve_screen()
 {
         for (size_t i = 0; i < ed.nlines; ++i) {
-		emit_cr();
-		emit_el();
+                emit_cr();
+                emit_el();
                 emit_lf();
-	}
-	emit_cuu(ed.nlines);
+        }
+
+        emit_el();
+
+        emit_cuu(ed.nlines);
 
         ed.screen_begin = cpr();
 
-	emit_cud(ed.nlines);
+        emit_cud(ed.nlines);
         ed.echo_begin = cpr();
 
         goto_(ed.screen_begin);
