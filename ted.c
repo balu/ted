@@ -624,6 +624,16 @@ void goto_(struct position pos)
         emit_csi('H', pos.y, pos.x);
 }
 
+void emit_cr()
+{
+	printf("\r");
+}
+
+void emit_el()
+{
+	printf("\x1b[K");
+}
+
 void emit_lf()
 {
         printf("\n");
@@ -883,9 +893,19 @@ void emit_clear_screen()
 
 void reserve_screen()
 {
-        for (size_t i = 0; i < ed.nlines + 1; ++i)
+        for (size_t i = 0; i < ed.nlines; ++i) {
+		emit_cr();
+		emit_el();
                 emit_lf();
-        emit_cuu(ed.nlines + 1);
+	}
+	emit_cuu(ed.nlines);
+
+        ed.screen_begin = cpr();
+
+	emit_cud(ed.nlines);
+        ed.echo_begin = cpr();
+
+        goto_(ed.screen_begin);
 }
 
 void move_point(struct tedchar *p)
@@ -2088,10 +2108,6 @@ int main([[maybe_unused]] int argc, const char *argv[])
         terminal_setup();
 
         reserve_screen();
-        ed.screen_begin = cpr();
-        emit_cud(ed.nlines);
-        ed.echo_begin = cpr();
-        goto_(ed.screen_begin);
 
         main_loop();
 
