@@ -2025,6 +2025,11 @@ start:
                 n = 0;
                 ed.is_prefix = false;
 
+                if (!ed.is_error)
+                        echo("");
+                else
+                        ed.is_error = false;
+
                 READ(k);
                 if (key_eq(k, kbd("C-u"))) {
                         n += snprintf(echo_buf + n, 128 - n, "C-u ");
@@ -2055,10 +2060,6 @@ start:
                                 if (km[i].is_command) {
                                         ed.last_key = k;
                                         km[i].cmd();
-                                        if (!ed.is_error)
-                                                echo("");
-                                        else
-                                                ed.is_error = false;
                                         break;
                                 } else {
                                         n += snprintf(echo_buf + n, 128 - n, "%s ", km[i].k);
