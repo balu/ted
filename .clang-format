@@ -1,0 +1,15 @@
+# .clang-format configuration for a Linux Kernel-like style using spaces
+BasedOnStyle: LLVM
+IndentWidth: 8
+TabWidth: 8
+ContinuationIndentWidth: 8
+UseTab: Never
+ColumnLimit: 100
+AllowShortFunctionsOnASingleLine: None
+AllowShortBlocksOnASingleLine: false
+AllowShortCaseLabelsOnASingleLine: false
+AllowShortIfStatementsOnASingleLine: false
+AllowShortLoopsOnASingleLine: false
+BreakBeforeBraces: Linux
+IndentCaseLabels: false
+AlignEscapedNewlines: Left
