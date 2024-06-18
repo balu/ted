@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <ctype.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <stdarg.h>
 #include <stdbool.h>
@@ -667,6 +668,16 @@ void set_cursor_type(enum cursor_type type)
         write(STDOUT_FILENO, buf, strlen(buf));
 }
 
+void err_exit(const char *message)
+{
+        if (errno)
+                perror(message);
+        else
+                fprintf(stderr, message);
+
+        exit(1);
+}
+
 struct termios old_termios;
 
 void terminal_reset()
@@ -679,17 +690,13 @@ void terminal_setup()
 {
         struct termios new_termios;
 
-        if (tcgetattr(STDIN_FILENO, &old_termios) == -1) {
-                perror("terminal_setup: tcgetattr() failed.");
-                exit(1);
-        }
+        if (tcgetattr(STDIN_FILENO, &old_termios) == -1)
+                err_exit("terminal_setup: tcgetattr() failed");
 
         cfmakeraw(&new_termios);
 
-        if (tcsetattr(STDIN_FILENO, TCSANOW, &new_termios) == -1) {
-                perror("terminal_setup: tcsetattr() failed.");
-                exit(1);
-        }
+        if (tcsetattr(STDIN_FILENO, TCSANOW, &new_termios) == -1)
+                err_exit("terminal_setup: tcsetattr() failed");
 
         set_cursor_type(BLINKING_BAR);
 
@@ -933,13 +940,6 @@ void move_point(struct tedchar *p)
         }
 }
 
-void err_exit(const char *message)
-{
-        write(STDERR_FILENO, message, strlen(message));
-
-        exit(1);
-}
-
 size_t tedchar_from_bytes(struct tedchar dest[], size_t n, const uint8_t src[], size_t m)
 {
         size_t i = 0;
@@ -981,14 +981,14 @@ void loadf(const char *filename)
         int fd;
 
         if ((fd = open(filename, O_RDONLY)) < 0) {
-                perror("loadf: Failed to open file.");
+                perror("loadf: Failed to open file");
                 goto err3;
         }
 
         struct stat st;
 
         if (fstat(fd, &st) < 0) {
-                perror("loadf: fstat() failed.");
+                perror("loadf: fstat() failed");
                 goto err2;
         }
 
@@ -996,7 +996,7 @@ void loadf(const char *filename)
 
         uint8_t *buf = malloc(st.st_size);
         if (!buf) {
-                perror("loadf: malloc() failed.");
+                perror("loadf: malloc() failed");
                 goto err2;
         }
 
@@ -1004,7 +1004,7 @@ void loadf(const char *filename)
                 ssize_t r = read(fd, buf + n, st.st_size - n);
 
                 if (r < 0) {
-                        perror("loadf: read() failed.");
+                        perror("loadf: read() failed");
                         goto err1;
                 }
 
@@ -1913,7 +1913,7 @@ void quit()
                         exit(0);
                 }
 
-                echo_error("Save changes before quiting.");
+                echo_error("Save changes before quiting");
                 return;
         }
 
@@ -2081,7 +2081,7 @@ start:
                                 ed.last_key = k;
                                 insert_char();
                         } else {
-                                echo_error("Undefined key.");
+                                echo_error("Undefined key");
                         }
                 }
         }
