@@ -5,7 +5,12 @@ entire terminal. Line editors like ed allow you to see terminal history
 by scrolling but are difficult to use compared to screen editors. ted is
 a screen editor that does not take over your terminal.
 
+# Demo
+
+[ted_demo.webm](https://github.com/balu/ted/assets/101276/905a741e-967e-40e5-b02f-8b8fa4bfd467)
+
 # Usage
+
 
 Compile
 
