@@ -1017,6 +1017,8 @@ void loadf(const char *filename)
 
         close(fd);
 
+        ed.filetype = UNIX; // TODO: Detect automatically, allow user to change.
+
         n = tedchar_from_bytes(ed.buffer, BUFSIZE, buf, st.st_size);
 
         free(buf);
