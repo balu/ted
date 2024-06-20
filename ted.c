@@ -980,7 +980,7 @@ void loadf(const char *filename)
 {
         int fd;
 
-        if ((fd = open(filename, O_RDONLY)) < 0) {
+        if ((fd = open(filename, O_RDONLY | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)) < 0) {
                 perror("loadf: Failed to open file");
                 goto err3;
         }
