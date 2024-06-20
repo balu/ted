@@ -803,6 +803,7 @@ struct {
 
         size_t tabstop;
         enum { UNIX, DOS } filetype;
+        bool ensure_trailing_newline;
         const char *filename;
         struct tedchar buffer[BUFSIZE];
         struct tedchar *gap_start;
@@ -1021,6 +1022,8 @@ void loadf(const char *filename)
         free(buf);
 
         ed.filename = filename;
+
+        ed.ensure_trailing_newline = true;
 
         ed.gap_start = ed.buffer + n;
         ed.gap_end = ed.buffer + BUFSIZE;
@@ -1785,6 +1788,24 @@ void backward_kill_char()
 
 void save_buffer()
 {
+        if (ed.ensure_trailing_newline && !is_buffer_empty()) {
+                struct tedchar *p = char_at_index(buffer_size() - 1);
+                if (!is_newline(*p)) {
+                        if (is_point_at_end_of_buffer()) {
+                                do_insert_char(tedchar_newline());
+                        } else {
+                                size_t where = index_of(char_at_point());
+
+                                end_of_buffer();
+                                do_insert_char(tedchar_newline());
+
+                                beginning_of_buffer();
+                                while (where--)
+                                        forward_char();
+                        }
+                }
+        }
+
         int fd = open(ed.filename, O_CREAT | O_TRUNC | O_WRONLY);
 
         uint8_t buf[BLKSIZE] = {0};
