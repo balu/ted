@@ -1842,6 +1842,7 @@ void save_buffer()
                         }
                         p = advance(p);
                 }
+
                 write(fd, buf, i);
                 i = 0;
                 if (!p)
