@@ -999,6 +999,12 @@ size_t tedchar_from_bytes(struct tedchar dest[], size_t n, const uint8_t src[], 
         return i;
 }
 
+void disable_mark()
+{
+	ed.is_mark_active = false;
+	ed.is_selection_active = false;
+}
+
 void loadf(const char *filename)
 {
         int fd;
@@ -1056,8 +1062,7 @@ void loadf(const char *filename)
         ed.goal_col = 0;
         ed.tl = NULL;
 
-        ed.is_selection_active = false;
-        ed.is_mark_active = false;
+	disable_mark();
 
         ed.is_dirty = false;
 
@@ -1846,8 +1851,7 @@ void delete_backward_char()
 {
 	if (ed.is_selection_active) {
 		delete_region();
-		ed.is_selection_active = false;
-		ed.is_mark_active = false;
+		disable_mark();
 		return;
 	}
 
@@ -1864,8 +1868,7 @@ void delete_forward_char()
 {
 	if (ed.is_selection_active) {
 		delete_region();
-		ed.is_selection_active = false;
-		ed.is_mark_active = false;
+		disable_mark();
 		return;
 	}
 
