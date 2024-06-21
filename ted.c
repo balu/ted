@@ -2046,7 +2046,7 @@ void quit()
                         exit(0);
                 }
 
-                echo_error("Save changes before quiting");
+                echo_error("Save and quit: C-u C-x C-c. Quit without saving: C-x M-c.");
                 return;
         }
 
