@@ -2144,6 +2144,7 @@ void main_loop()
         char echo_buf[128];
         size_t n = 0;
         struct key k;
+	bool is_keychord = false;
 
 #define READ(k)                              \
         do {                                 \
@@ -2157,6 +2158,7 @@ start:
         while (1) {
                 refresh();
                 n = 0;
+		is_keychord = false;
                 ed.is_prefix = false;
 
                 if (!ed.is_error && !ed.is_info) {
@@ -2201,6 +2203,7 @@ start:
                                         n += snprintf(echo_buf + n, 128 - n, "%s ", km[i].k);
                                         echo(echo_buf);
                                         km = km[i].nested;
+					is_keychord = true;
                                         READ(k);
                                         i = 0;
                                 }
@@ -2210,7 +2213,7 @@ start:
                 }
 
                 if (!km[i].k) {
-                        if (is_textchar(k)) {
+                        if (is_textchar(k) && !is_keychord) {
                                 ed.last_key = k;
                                 insert_char();
                         } else {
