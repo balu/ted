@@ -879,10 +879,9 @@ void echo_error(const char *message, ...)
 
         va_start(ap, message);
 
-        size_t n = snprintf(buf, sizeof(buf), "\x1b[41m\x1b[37m\x1b[1m");
+        size_t n = snprintf(buf, sizeof(buf), "\x1b[31m\x1b[1m");
         n += vsnprintf(buf + n, sizeof(buf) - n, message, ap);
-        n += snprintf(buf + n, sizeof(buf) - n, "\x1b[m");
-        n += snprintf(buf + n, sizeof(buf) - n, "\x1b[K");
+        n += snprintf(buf + n, sizeof(buf) - n, "\x1b[m\x1b[K");
 
         save_cursor();
 
@@ -901,8 +900,9 @@ void echo_info(const char *message, ...)
 
         va_start(ap, message);
 
-        size_t n = vsnprintf(buf, sizeof(buf), message, ap);
-        n += snprintf(buf + n, sizeof(buf) - n, "\x1b[K");
+	size_t n = snprintf(buf, sizeof(buf), "\x1b[33m");
+        n += vsnprintf(buf + n, sizeof(buf) - n, message, ap);
+        n += snprintf(buf + n, sizeof(buf) - n, "\x1b[m\x1b[K");
 
         save_cursor();
 
