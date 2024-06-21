@@ -819,6 +819,7 @@ struct {
         bool is_dirty;
         struct key last_key;
         bool is_error;
+        bool is_info;
         struct tedchar kill_buffer[BUFSIZE];
         size_t kill_size;
 } ed;
@@ -892,6 +893,27 @@ void echo_error(const char *message, ...)
 
         ed.is_error = true;
 }
+
+void echo_info(const char *message, ...)
+{
+        char buf[512];
+        va_list ap;
+
+        va_start(ap, message);
+
+        size_t n = vsnprintf(buf, sizeof(buf), message, ap);
+        n += snprintf(buf + n, sizeof(buf) - n, "\x1b[K");
+
+        save_cursor();
+
+        goto_(ed.echo_begin);
+        write(STDOUT_FILENO, buf, strlen(buf));
+
+        restore_cursor();
+
+        ed.is_info = true;
+}
+
 
 void emit_clear_screen()
 {
@@ -1040,6 +1062,7 @@ void loadf(const char *filename)
         ed.is_dirty = false;
 
         ed.is_error = false;
+        ed.is_info = false;
 
         ed.kill_size = 0;
 
@@ -1989,6 +2012,28 @@ void yank()
         }
 }
 
+void show_line_column()
+{
+	struct tedchar *p = char_at_point();
+	struct tedchar *t = char_at_index(0);
+
+	size_t line_no = 1;
+	size_t col_no = 1;
+
+	while (t != p) {
+		if (is_newline(*t)) {
+			++line_no;
+			col_no = 1;
+		} else {
+			++col_no;
+		}
+
+		t = advance(t);
+	}
+
+	echo_info("L%uC%u", line_no, col_no);
+}
+
 void quit()
 {
         if (ed.is_dirty) {
@@ -2042,6 +2087,7 @@ struct keymap_entry {
 };
 
 const struct keymap_entry extended_keymap[] = {
+	{"=", CMD(show_line_column)},
         {"C-c", CMD(quit)},        {"C-n", CMD(set_goal_column)},
         {"C-s", CMD(save_buffer)}, {"C-x", CMD(exchange_point_and_mark)},
         {"M-c", CMD(kill_ted)},    {0, CMD(cancel)},
@@ -2115,10 +2161,12 @@ start:
                 n = 0;
                 ed.is_prefix = false;
 
-                if (!ed.is_error)
+                if (!ed.is_error && !ed.is_info) {
                         echo("");
-                else
+		} else {
                         ed.is_error = false;
+			ed.is_info = false;
+		}
 
                 READ(k);
                 if (key_eq(k, kbd("C-u"))) {
