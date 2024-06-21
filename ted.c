@@ -1778,7 +1778,7 @@ void open_previous_line()
 	open_line();
 }
 
-void forward_kill_char()
+void delete_char()
 {
         if (is_buffer_empty() || is_point_at_end_of_buffer())
                 return;
@@ -1795,15 +1795,58 @@ void forward_kill_char()
         ++ed.gap_end;
 }
 
-void backward_kill_char()
+void delete_region()
 {
+	size_t low, high;
+
+	point_mark_low_high(&low, &high);
+
+	struct tedchar *p = char_at_index(low);
+
+	if (!p) return;
+
+	size_t nchars = high-low;
+
+	if (nchars == 0) return;
+
+	ed.is_dirty = true;
+
+	beginning_of_buffer();
+	while (low--)
+		forward_char();
+
+	while (nchars--)
+		delete_char();
+}
+
+void delete_backward_char()
+{
+	if (ed.is_selection_active) {
+		delete_region();
+		ed.is_selection_active = false;
+		ed.is_mark_active = false;
+		return;
+	}
+
         if (is_buffer_empty() || is_point_at_beginning_of_buffer())
                 return;
 
         ed.is_dirty = true;
 
         backward_char();
-        forward_kill_char();
+        delete_char();
+}
+
+void delete_forward_char()
+{
+	if (ed.is_selection_active) {
+		delete_region();
+		ed.is_selection_active = false;
+		ed.is_mark_active = false;
+		return;
+	}
+
+	delete_char();
 }
 
 void save_buffer()
@@ -1934,7 +1977,7 @@ void kill_region()
         for (size_t k = 0; k < low; ++k)
                 forward_char();
         while (nchars--)
-                forward_kill_char();
+                delete_char();
 
         ed.is_selection_active = false;
 }
@@ -2012,10 +2055,9 @@ const struct keymap_entry global_keymap[] = {
         {"C-<space>", CMD(set_mark)},
         {"C-a", CMD(beginning_of_row)},
         {"C-b", CMD(backward_char)},
-        {"C-d", CMD(forward_kill_char)},
+        {"C-d", CMD(delete_char)},
         {"C-e", CMD(end_of_row)},
         {"C-f", CMD(forward_char)},
-        {"C-h", CMD(backward_kill_char)},
         {"C-n", CMD(next_row)},
         {"C-o", CMD(open_line)},
         {"C-p", CMD(previous_row)},
@@ -2038,8 +2080,8 @@ const struct keymap_entry global_keymap[] = {
         {"M->", CMD(end_of_buffer)},
         {"C-M-b", CMD(backward_paragraph)},
         {"C-M-f", CMD(forward_paragraph)},
-        {"<backspace>", CMD(backward_kill_char)},
-        {"<delete>", CMD(forward_kill_char)},
+        {"<backspace>", CMD(delete_backward_char)},
+        {"<delete>", CMD(delete_forward_char)},
         {"<down>", CMD(next_row)},
         {"<end>", CMD(end_of_row)},
         {"<home>", CMD(beginning_of_row)},
