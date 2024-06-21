@@ -2096,10 +2096,6 @@ const struct keymap_entry extended_keymap[] = {
         {"M-c", CMD(kill_ted)},    {0, CMD(cancel)},
 };
 
-const struct keymap_entry prefix_keymap[] = {
-        {0, CMD(cancel)},
-};
-
 const struct keymap_entry global_keymap[] = {
         {"C-<space>", CMD(set_mark)},
         {"C-a", CMD(beginning_of_row)},
@@ -2110,7 +2106,6 @@ const struct keymap_entry global_keymap[] = {
         {"C-n", CMD(next_row)},
         {"C-o", CMD(open_line)},
         {"C-p", CMD(previous_row)},
-        {"C-u", MAP(prefix_keymap)},
         {"C-v", CMD(scroll_up)},
         {"C-w", CMD(kill_region)},
         {"C-x", MAP(extended_keymap)},
@@ -2139,7 +2134,7 @@ const struct keymap_entry global_keymap[] = {
         {"<prior>", CMD(page_up)},
         {"<right>", CMD(forward_char)},
         {"<up>", CMD(previous_row)},
-        {0, CMD(quit)},
+        {0, CMD(cancel)},
 };
 #undef CMD
 #undef MAP
