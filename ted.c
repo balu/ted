@@ -1760,6 +1760,24 @@ void insert_char()
         do_insert_char(t);
 }
 
+void open_line()
+{
+        do_insert_char(tedchar_newline());
+        backward_char();
+}
+
+void open_next_line()
+{
+	end_of_line();
+	do_insert_char(tedchar_newline());
+}
+
+void open_previous_line()
+{
+	beginning_of_line();
+	open_line();
+}
+
 void forward_kill_char()
 {
         if (is_buffer_empty() || is_point_at_end_of_buffer())
@@ -1999,17 +2017,20 @@ const struct keymap_entry global_keymap[] = {
         {"C-f", CMD(forward_char)},
         {"C-h", CMD(backward_kill_char)},
         {"C-n", CMD(next_row)},
+        {"C-o", CMD(open_line)},
         {"C-p", CMD(previous_row)},
         {"C-u", MAP(prefix_keymap)},
         {"C-v", CMD(scroll_up)},
         {"C-w", CMD(kill_region)},
         {"C-x", MAP(extended_keymap)},
         {"C-y", CMD(yank)},
+        {"M-O", CMD(open_previous_line)},
         {"M-a", CMD(beginning_of_line)},
         {"M-b", CMD(backward_word)},
         {"M-e", CMD(end_of_line)},
         {"M-f", CMD(forward_word)},
         {"M-g", CMD(goto_line)},
+        {"M-o", CMD(open_next_line)},
         {"M-v", CMD(scroll_down)},
         {"M-w", CMD(kill_region_save)},
         {"M-%", CMD(goto_percent)},
