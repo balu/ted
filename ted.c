@@ -997,8 +997,8 @@ size_t tedchar_from_bytes(struct tedchar dest[], size_t n, const uint8_t src[], 
 
 void disable_mark()
 {
-	ed.is_mark_active = false;
-	ed.is_selection_active = false;
+        ed.is_mark_active = false;
+        ed.is_selection_active = false;
 }
 
 void loadf(const char *filename)
@@ -1058,7 +1058,7 @@ void loadf(const char *filename)
         ed.goal_col = 0;
         ed.tl = NULL;
 
-	disable_mark();
+        disable_mark();
 
         ed.is_dirty = false;
 
@@ -1780,94 +1780,133 @@ void insert_char()
         else
                 t = tedchar_utf8(k.u);
 
-        do_insert_char(t);
+        size_t repeat = ed.is_prefix ? ed.prefix_arg : 1;
+
+        ed.is_prefix = false;
+
+        while (repeat--) {
+                do_insert_char(t);
+        }
 }
 
 void open_line()
 {
-        do_insert_char(tedchar_newline());
-        backward_char();
+        size_t repeat = ed.is_prefix ? ed.prefix_arg : 1;
+
+        ed.is_prefix = false;
+
+        while (repeat--) {
+                do_insert_char(tedchar_newline());
+                backward_char();
+        }
 }
 
 void open_next_line()
 {
-	end_of_line();
-	do_insert_char(tedchar_newline());
+        size_t repeat = ed.is_prefix ? ed.prefix_arg : 1;
+
+        ed.is_prefix = false;
+
+        while (repeat--) {
+                end_of_line();
+                do_insert_char(tedchar_newline());
+        }
 }
 
 void open_previous_line()
 {
-	beginning_of_line();
-	open_line();
+        size_t repeat = ed.is_prefix ? ed.prefix_arg : 1;
+
+        ed.is_prefix = false;
+
+        while (repeat--) {
+                beginning_of_line();
+                open_line();
+        }
 }
 
 void delete_char()
 {
-        if (is_buffer_empty() || is_point_at_end_of_buffer())
-                return;
+        size_t repeat = ed.is_prefix ? ed.prefix_arg : 1;
 
-        ed.is_dirty = true;
+        ed.is_prefix = false;
 
-        if (ed.cursor_row == ed.nlines - 1 && next_col(*char_at_point(), ed.cursor_col) == 0)
-                scroll_up();
+        while (repeat--) {
+                if (is_buffer_empty() || is_point_at_end_of_buffer())
+                        return;
 
-        if (ed.tl == ed.gap_end) {
-                ed.tl = advance(ed.gap_end);
+                ed.is_dirty = true;
+
+                if (ed.cursor_row == ed.nlines - 1 &&
+                    next_col(*char_at_point(), ed.cursor_col) == 0)
+                        scroll_up();
+
+                if (ed.tl == ed.gap_end) {
+                        ed.tl = advance(ed.gap_end);
+                }
+
+                ++ed.gap_end;
         }
-
-        ++ed.gap_end;
 }
 
 void delete_region()
 {
-	size_t low, high;
+        size_t low, high;
 
-	point_mark_low_high(&low, &high);
+        point_mark_low_high(&low, &high);
 
-	struct tedchar *p = char_at_index(low);
+        struct tedchar *p = char_at_index(low);
 
-	if (!p) return;
+        if (!p)
+                return;
 
-	size_t nchars = high-low;
+        size_t nchars = high - low;
 
-	if (nchars == 0) return;
-
-	ed.is_dirty = true;
-
-	beginning_of_buffer();
-	while (low--)
-		forward_char();
-
-	while (nchars--)
-		delete_char();
-}
-
-void delete_backward_char()
-{
-	if (ed.is_selection_active) {
-		delete_region();
-		disable_mark();
-		return;
-	}
-
-        if (is_buffer_empty() || is_point_at_beginning_of_buffer())
+        if (nchars == 0)
                 return;
 
         ed.is_dirty = true;
 
-        backward_char();
-        delete_char();
+        beginning_of_buffer();
+        while (low--)
+                forward_char();
+
+        while (nchars--)
+                delete_char();
+}
+
+void delete_backward_char()
+{
+        if (ed.is_selection_active) {
+                delete_region();
+                disable_mark();
+                return;
+        }
+
+        size_t repeat = ed.is_prefix ? ed.prefix_arg : 1;
+
+        ed.is_prefix = false;
+
+        while (repeat--) {
+                if (is_buffer_empty() || is_point_at_beginning_of_buffer())
+                        return;
+
+                ed.is_dirty = true;
+
+                backward_char();
+                delete_char();
+        }
 }
 
 void delete_forward_char()
 {
-	if (ed.is_selection_active) {
-		delete_region();
-		disable_mark();
-		return;
-	}
+        if (ed.is_selection_active) {
+                delete_region();
+                disable_mark();
+                return;
+        }
 
-	delete_char();
+        delete_char();
 }
 
 void save_buffer()
@@ -2012,24 +2051,25 @@ void yank()
 
 void show_line_column()
 {
-	struct tedchar *p = char_at_point();
-	struct tedchar *t = char_at_index(0);
+        struct tedchar *p = char_at_point();
+        struct tedchar *t = char_at_index(0);
 
-	size_t line_no = 1;
-	size_t col_no = 1;
+        size_t line_no = 1;
+        size_t col_no = 1;
 
-	while (t != p) {
-		if (is_newline(*t)) {
-			++line_no;
-			col_no = 1;
-		} else {
-			++col_no;
-		}
+        while (t != p) {
+                if (is_newline(*t)) {
+                        ++line_no;
+                        col_no = 1;
+                } else {
+                        ++col_no;
+                }
 
-		t = advance(t);
-	}
+                t = advance(t);
+        }
 
-	echo_info("L%uC%u", line_no, col_no);
+        echo_info("L%uC%u", line_no, col_no);
+        ed.preserve_echo = true;
 }
 
 void quit()
@@ -2085,10 +2125,13 @@ struct keymap_entry {
 };
 
 const struct keymap_entry extended_keymap[] = {
-	{"=", CMD(show_line_column)},
-        {"C-c", CMD(quit)},        {"C-n", CMD(set_goal_column)},
-        {"C-s", CMD(save_buffer)}, {"C-x", CMD(exchange_point_and_mark)},
-        {"M-c", CMD(kill_ted)},    {0, CMD(cancel)},
+        {"=", CMD(show_line_column)},
+        {"C-c", CMD(quit)},
+        {"C-n", CMD(set_goal_column)},
+        {"C-s", CMD(save_buffer)},
+        {"C-x", CMD(exchange_point_and_mark)},
+        {"M-c", CMD(kill_ted)},
+        {0, CMD(cancel)},
 };
 
 const struct keymap_entry global_keymap[] = {
@@ -2153,7 +2196,7 @@ start:
         while (1) {
                 refresh();
                 n = 0;
-		is_keychord = false;
+                is_keychord = false;
                 ed.is_prefix = false;
 
                 if (!ed.preserve_echo)
@@ -2164,7 +2207,7 @@ start:
                 READ(k);
                 if (key_eq(k, kbd("C-u"))) {
                         n += snprintf(echo_buf + n, 128 - n, "C-u ");
-                        echo(echo_buf);
+                        echo_info(echo_buf);
 
                         ed.is_prefix = true;
                         bool scanned_num = false;
