@@ -818,8 +818,7 @@ struct {
         bool is_selection_active;
         bool is_dirty;
         struct key last_key;
-        bool is_error;
-        bool is_info;
+        bool preserve_echo;
         struct tedchar kill_buffer[BUFSIZE];
         size_t kill_size;
 } ed;
@@ -890,7 +889,7 @@ void echo_error(const char *message, ...)
 
         restore_cursor();
 
-        ed.is_error = true;
+        ed.preserve_echo = true;
 }
 
 void echo_info(const char *message, ...)
@@ -910,10 +909,7 @@ void echo_info(const char *message, ...)
         write(STDOUT_FILENO, buf, strlen(buf));
 
         restore_cursor();
-
-        ed.is_info = true;
 }
-
 
 void emit_clear_screen()
 {
@@ -1066,8 +1062,7 @@ void loadf(const char *filename)
 
         ed.is_dirty = false;
 
-        ed.is_error = false;
-        ed.is_info = false;
+        ed.preserve_echo = false;
 
         ed.kill_size = 0;
 
@@ -2161,12 +2156,10 @@ start:
 		is_keychord = false;
                 ed.is_prefix = false;
 
-                if (!ed.is_error && !ed.is_info) {
+                if (!ed.preserve_echo)
                         echo("");
-		} else {
-                        ed.is_error = false;
-			ed.is_info = false;
-		}
+                else
+                        ed.preserve_echo = false;
 
                 READ(k);
                 if (key_eq(k, kbd("C-u"))) {
