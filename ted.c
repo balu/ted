@@ -2321,7 +2321,7 @@ start:
                                 scanned_num = true;
                                 ed.prefix_arg = ed.prefix_arg * 10 + (k.u.c[0] - '0');
                                 n += snprintf(echo_buf + n, 128 - n, "%c ", k.u.c[0]);
-                                echo(echo_buf);
+                                echo_info(echo_buf);
 
                                 READ(k);
                         }
@@ -2340,7 +2340,7 @@ start:
                                         break;
                                 } else {
                                         n += snprintf(echo_buf + n, 128 - n, "%s ", km[i].k);
-                                        echo(echo_buf);
+                                        echo_info(echo_buf);
                                         km = km[i].nested;
                                         is_keychord = true;
                                         READ(k);
