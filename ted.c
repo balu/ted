@@ -2353,6 +2353,11 @@ start:
 
                 if (!km[i].k) {
                         if (is_textchar(k) && !is_keychord) {
+                                if (ed.is_selection_active) {
+                                        delete_region();
+                                        disable_mark();
+                                }
+
                                 ed.last_key = k;
                                 insert_char();
                         } else {
