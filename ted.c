@@ -1381,228 +1381,314 @@ void beginning_of_buffer();
 
 void scroll_down()
 {
-        if (ed.cursor_row == ed.nlines - 1) {
-                previous_row();
+        if (is_buffer_empty())
+                return;
+
+        size_t repeat = ed.is_prefix ? ed.prefix_arg : 1;
+
+        ed.is_prefix = false;
+
+        while (repeat--) {
+                if (ed.cursor_row == ed.nlines - 1) {
+                        previous_row();
+                }
+
+                struct tedchar *p = ed.tl;
+                if (!p)
+                        return;
+
+                struct tedchar *q = retreat(p);
+                if (!q)
+                        return;
+
+                ed.tl = first_of_visual_line(q);
+                ++ed.cursor_row;
         }
-
-        struct tedchar *p = ed.tl;
-        if (!p)
-                return;
-
-        struct tedchar *q = retreat(p);
-        if (!q)
-                return;
-
-        ed.tl = first_of_visual_line(q);
-        ++ed.cursor_row;
 }
 
 void scroll_up()
 {
-        if (ed.cursor_row == 0) {
-                next_row();
-        }
-
-        struct tedchar *p = ed.tl;
-        size_t n = 0;
-
-        if (!p)
+        if (is_buffer_empty())
                 return;
 
-        while (1) {
-                n = next_col(*p, n);
-                p = advance(p);
+        size_t repeat = ed.is_prefix ? ed.prefix_arg : 1;
+
+        ed.is_prefix = false;
+
+        while (repeat--) {
+                if (ed.cursor_row == 0) {
+                        next_row();
+                }
+
+                struct tedchar *p = ed.tl;
+                size_t n = 0;
+
                 if (!p)
                         return;
-                if (n == 0)
-                        break;
-        }
 
-        ed.tl = p;
-        --ed.cursor_row;
+                while (1) {
+                        n = next_col(*p, n);
+                        p = advance(p);
+                        if (!p)
+                                return;
+                        if (n == 0)
+                                break;
+                }
+
+                ed.tl = p;
+                --ed.cursor_row;
+        }
 }
 
 void forward_char()
 {
-        struct tedchar *c = char_at_point();
-
-        if (!c)
+        if (is_buffer_empty())
                 return;
 
-        if (ed.cursor_row == ed.nlines - 1 && next_col(*c, ed.cursor_col) == 0) {
-                scroll_up();
-                c = char_at_point();
-        }
+        size_t repeat = ed.is_prefix ? ed.prefix_arg : 1;
 
-        if (ed.cursor_row == 0 && ed.cursor_col == 0) {
-                ed.tl = ed.gap_start;
-        }
+        ed.is_prefix = false;
 
-        *ed.gap_start = *c;
-        ++ed.gap_start;
-        ++ed.gap_end;
-        if (next_col(*c, ed.cursor_col) == 0) {
-                ++ed.cursor_row;
-        }
-        ed.cursor_col = next_col(*c, ed.cursor_col);
+        while (repeat--) {
+                if (is_point_at_end_of_buffer())
+                        return;
 
-        if (!ed.force_goal_col)
-                ed.goal_col = ed.cursor_col;
+                struct tedchar *c = char_at_point();
+
+                if (ed.cursor_row == ed.nlines - 1 && next_col(*c, ed.cursor_col) == 0) {
+                        scroll_up();
+                        c = char_at_point();
+                }
+
+                if (ed.cursor_row == 0 && ed.cursor_col == 0) {
+                        ed.tl = ed.gap_start;
+                }
+
+                *ed.gap_start = *c;
+                ++ed.gap_start;
+                ++ed.gap_end;
+                if (next_col(*c, ed.cursor_col) == 0) {
+                        ++ed.cursor_row;
+                }
+                ed.cursor_col = next_col(*c, ed.cursor_col);
+
+                if (!ed.force_goal_col)
+                        ed.goal_col = ed.cursor_col;
+        }
 }
 
 void backward_char()
 {
-        if (ed.cursor_row == 0 && ed.cursor_col == 0) {
-                scroll_down();
-        }
+        if (is_buffer_empty())
+                return;
 
-        if (ed.gap_start > ed.buffer) {
-                --ed.gap_end;
-                --ed.gap_start;
-                *ed.gap_end = *ed.gap_start;
-                if (is_newline(*ed.gap_end) || ed.cursor_col == 0)
-                        --ed.cursor_row;
-                ed.cursor_col = col_of(ed.gap_end);
-        }
+        size_t repeat = ed.is_prefix ? ed.prefix_arg : 1;
 
-        if (ed.cursor_row == 0 && ed.cursor_col == 0) {
-                ed.tl = char_at_point();
-        }
+        ed.is_prefix = false;
 
-        if (!ed.force_goal_col)
-                ed.goal_col = ed.cursor_col;
+        while (repeat--) {
+                if (is_point_at_beginning_of_buffer())
+                        return;
+
+                if (ed.cursor_row == 0 && ed.cursor_col == 0) {
+                        scroll_down();
+                }
+
+                if (ed.gap_start > ed.buffer) {
+                        --ed.gap_end;
+                        --ed.gap_start;
+                        *ed.gap_end = *ed.gap_start;
+                        if (is_newline(*ed.gap_end) || ed.cursor_col == 0)
+                                --ed.cursor_row;
+                        ed.cursor_col = col_of(ed.gap_end);
+                }
+
+                if (ed.cursor_row == 0 && ed.cursor_col == 0) {
+                        ed.tl = char_at_point();
+                }
+
+                if (!ed.force_goal_col)
+                        ed.goal_col = ed.cursor_col;
+        }
 }
 
 void forward_word()
 {
-        while (!is_buffer_empty() && !is_point_at_end_of_buffer() &&
-               is_whitespace(*char_at_point()))
-                forward_char();
+        if (is_buffer_empty())
+                return;
 
-        while (!is_buffer_empty() && !is_point_at_end_of_buffer() &&
-               !is_whitespace(*char_at_point()))
-                forward_char();
+        size_t repeat = ed.is_prefix ? ed.prefix_arg : 1;
+
+        ed.is_prefix = false;
+
+        while (repeat--) {
+                if (is_point_at_end_of_buffer())
+                        return;
+
+                while (!is_point_at_end_of_buffer() && is_whitespace(*char_at_point()))
+                        forward_char();
+
+                while (!is_point_at_end_of_buffer() && !is_whitespace(*char_at_point()))
+                        forward_char();
+        }
 }
 
 void backward_word()
 {
-        if (is_buffer_empty() || is_point_at_beginning_of_buffer())
+        if (is_buffer_empty())
                 return;
 
-        backward_char();
+        size_t repeat = ed.is_prefix ? ed.prefix_arg : 1;
 
-        while (!is_point_at_beginning_of_buffer() && is_whitespace(*char_at_point()))
+        ed.is_prefix = false;
+
+        while (repeat--) {
                 backward_char();
-
-        bool found_word = false;
-        while (1) {
-                if (is_whitespace(*char_at_point())) {
-                        if (found_word)
-                                forward_char();
-                        break;
-                }
 
                 if (is_point_at_beginning_of_buffer())
-                        break;
+                        return;
 
-                found_word = true;
+                while (is_whitespace(*char_at_point()))
+                        backward_char();
 
-                backward_char();
+                bool found_word = false;
+                while (1) {
+                        if (is_whitespace(*char_at_point())) {
+                                if (found_word)
+                                        forward_char();
+                                break;
+                        }
+
+                        found_word = true;
+
+                        backward_char();
+                }
         }
 }
 
 void forward_paragraph()
 {
-        if (is_buffer_empty() || is_point_at_end_of_buffer())
+        if (is_buffer_empty())
                 return;
 
-        while (!is_point_at_end_of_buffer() && is_whitespace(*char_at_point()))
-                forward_char();
+        size_t repeat = ed.is_prefix ? ed.prefix_arg : 1;
 
-        size_t newline_run = 0;
-        while (!is_point_at_end_of_buffer()) {
-                if (is_newline(*char_at_point())) {
-                        ++newline_run;
-                        if (newline_run == 2)
-                                return;
-                } else {
-                        newline_run = 0;
+        ed.is_prefix = false;
+
+        while (repeat--) {
+                if (is_point_at_end_of_buffer())
+                        return;
+
+                while (!is_point_at_end_of_buffer() && is_whitespace(*char_at_point()))
+                        forward_char();
+
+                size_t newline_run = 0;
+                while (!is_point_at_end_of_buffer()) {
+                        if (is_newline(*char_at_point())) {
+                                ++newline_run;
+                                if (newline_run == 2)
+                                        break;
+                        } else {
+                                newline_run = 0;
+                        }
+
+                        forward_char();
                 }
-
-                forward_char();
         }
 }
 
 void backward_paragraph()
 {
-        if (is_buffer_empty() || is_point_at_beginning_of_buffer())
+        if (is_buffer_empty())
                 return;
 
-        backward_char();
+        size_t repeat = ed.is_prefix ? ed.prefix_arg : 1;
 
-        while (!is_point_at_beginning_of_buffer() && is_whitespace(*char_at_point()))
+        ed.is_prefix = false;
+
+        while (repeat--) {
+                if (is_point_at_beginning_of_buffer())
+                        return;
+
                 backward_char();
 
-        size_t newline_run = 0;
-        while (!is_point_at_beginning_of_buffer()) {
-                if (is_newline(*char_at_point())) {
-                        ++newline_run;
-                        if (newline_run == 2) {
-                                while (!is_point_at_end_of_buffer() &&
-                                       is_whitespace(*char_at_point()))
-                                        forward_char();
-                                return;
+                while (!is_point_at_beginning_of_buffer() && is_whitespace(*char_at_point()))
+                        backward_char();
+
+                size_t newline_run = 0;
+                while (!is_point_at_beginning_of_buffer()) {
+                        if (is_newline(*char_at_point())) {
+                                ++newline_run;
+                                if (newline_run == 2) {
+                                        while (!is_point_at_end_of_buffer() &&
+                                               is_whitespace(*char_at_point()))
+                                                forward_char();
+                                        break;
+                                }
+                        } else {
+                                newline_run = 0;
                         }
-                } else {
-                        newline_run = 0;
-                }
 
-                backward_char();
+                        backward_char();
+                }
         }
 }
 
 void next_row()
 {
-        if (ed.cursor_row == ed.nlines - 1) {
-                scroll_up();
-        }
+        size_t repeat = ed.is_prefix ? ed.prefix_arg : 1;
 
-        size_t save_goal = ed.goal_col;
+        ed.is_prefix = false;
 
-        end_of_row();
-        forward_char();
-        beginning_of_row();
-
-        while (1) {
-                struct tedchar *p = char_at_point();
-                if (ed.cursor_col >= save_goal || !p || is_newline(*p)) {
-                        ed.goal_col = save_goal;
-                        return;
+        while (repeat--) {
+                if (ed.cursor_row == ed.nlines - 1) {
+                        scroll_up();
                 }
+
+                size_t save_goal = ed.goal_col;
+
+                end_of_row();
                 forward_char();
+                beginning_of_row();
+
+                while (1) {
+                        struct tedchar *p = char_at_point();
+                        if (ed.cursor_col >= save_goal || !p || is_newline(*p)) {
+                                ed.goal_col = save_goal;
+                                break;
+                        }
+                        forward_char();
+                }
         }
 }
 
 void previous_row()
 {
-        if (ed.cursor_row == 0) {
-                scroll_down();
-        }
+        size_t repeat = ed.is_prefix ? ed.prefix_arg : 1;
 
-        size_t save_goal = ed.goal_col;
+        ed.is_prefix = false;
 
-        beginning_of_row();
-        backward_char();
-        beginning_of_row();
-        while (1) {
-                struct tedchar *p = char_at_point();
-
-                if (ed.cursor_col >= save_goal || !p || is_newline(*p)) {
-                        ed.goal_col = save_goal;
-                        return;
+        while (repeat--) {
+                if (ed.cursor_row == 0) {
+                        scroll_down();
                 }
 
-                forward_char();
+                size_t save_goal = ed.goal_col;
+
+                beginning_of_row();
+                backward_char();
+                beginning_of_row();
+
+                while (1) {
+                        struct tedchar *p = char_at_point();
+
+                        if (ed.cursor_col >= save_goal || !p || is_newline(*p)) {
+                                ed.goal_col = save_goal;
+                                break;
+                        }
+
+                        forward_char();
+                }
         }
 }
 
@@ -1703,17 +1789,29 @@ void end_of_buffer()
 
 void page_down()
 {
-        for (size_t i = 0; i < (ed.nlines + 2) / 2; ++i) {
-                scroll_up();
-                next_row();
+        size_t repeat = ed.is_prefix ? ed.prefix_arg : 1;
+
+        ed.is_prefix = false;
+
+        while (repeat--) {
+                for (size_t i = 0; i < (ed.nlines + 2) / 2; ++i) {
+                        scroll_up();
+                        next_row();
+                }
         }
 }
 
 void page_up()
 {
-        for (size_t i = 0; i < (ed.nlines + 2) / 2; ++i) {
-                scroll_down();
-                previous_row();
+        size_t repeat = ed.is_prefix ? ed.prefix_arg : 1;
+
+        ed.is_prefix = false;
+
+        while (repeat--) {
+                for (size_t i = 0; i < (ed.nlines + 2) / 2; ++i) {
+                        scroll_down();
+                        previous_row();
+                }
         }
 }
 
@@ -2044,9 +2142,14 @@ void kill_region()
 
 void yank()
 {
-        for (size_t i = 0; i < ed.kill_size; ++i) {
-                do_insert_char(ed.kill_buffer[i]);
-        }
+        size_t repeat = ed.is_prefix ? ed.prefix_arg : 1;
+
+        ed.is_prefix = false;
+
+        while (repeat--)
+                for (size_t i = 0; i < ed.kill_size; ++i) {
+                        do_insert_char(ed.kill_buffer[i]);
+                }
 }
 
 void show_line_column()
