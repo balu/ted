@@ -21,6 +21,9 @@
 #define CONTINUATION_LINE_STR "\x1b[31m\\\x1b[m"
 #define EMPTY_LINE_STR "\x1b[34m~\x1b[m"
 
+#define INFO_PRE ("\x1b[33m")
+#define ERROR_PRE ("\x1b[31m\x1b[1m")
+
 #define BUFSIZE (1024 * 1024)
 
 #define BLKSIZE (4096)
@@ -852,21 +855,12 @@ void sanitize(char buf[])
         buf[ed.ncols] = 0;
 }
 
-void echo(const char *message, ...)
+void echo_clear()
 {
-        char buf[512];
-        va_list ap;
-
-        va_start(ap, message);
-        vsnprintf(buf, sizeof(buf), message, ap);
-        sanitize(buf);
-        size_t n = strlen(buf);
-        strcpy(buf + n, "\x1b[K");
-
         save_cursor();
 
         goto_(ed.echo_begin);
-        write(STDOUT_FILENO, buf, strlen(buf));
+        write(STDOUT_FILENO, "\x1b[K", strlen("\x1b[K"));
 
         restore_cursor();
 }
@@ -878,7 +872,7 @@ void echo_error(const char *message, ...)
 
         va_start(ap, message);
 
-        size_t n = snprintf(buf, sizeof(buf), "\x1b[31m\x1b[1m");
+        size_t n = snprintf(buf, sizeof(buf), ERROR_PRE);
         n += vsnprintf(buf + n, sizeof(buf) - n, message, ap);
         n += snprintf(buf + n, sizeof(buf) - n, "\x1b[m\x1b[K");
 
@@ -899,7 +893,7 @@ void echo_info(const char *message, ...)
 
         va_start(ap, message);
 
-        size_t n = snprintf(buf, sizeof(buf), "\x1b[33m");
+        size_t n = snprintf(buf, sizeof(buf), INFO_PRE);
         n += vsnprintf(buf + n, sizeof(buf) - n, message, ap);
         n += snprintf(buf + n, sizeof(buf) - n, "\x1b[m\x1b[K");
 
@@ -2201,7 +2195,7 @@ void kill_ted()
 void cancel()
 {
         ed.is_selection_active = false;
-        echo("");
+        echo_clear();
 }
 
 const char *prog;
@@ -2303,7 +2297,7 @@ start:
                 ed.is_prefix = false;
 
                 if (!ed.preserve_echo)
-                        echo("");
+                        echo_clear();
                 else
                         ed.preserve_echo = false;
 
