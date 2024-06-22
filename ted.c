@@ -900,7 +900,7 @@ void echo_info(const char *message, ...)
 
         va_start(ap, message);
 
-	size_t n = snprintf(buf, sizeof(buf), "\x1b[33m");
+        size_t n = snprintf(buf, sizeof(buf), "\x1b[33m");
         n += vsnprintf(buf + n, sizeof(buf) - n, message, ap);
         n += snprintf(buf + n, sizeof(buf) - n, "\x1b[m\x1b[K");
 
@@ -2144,7 +2144,7 @@ void main_loop()
         char echo_buf[128];
         size_t n = 0;
         struct key k;
-	bool is_keychord = false;
+        bool is_keychord = false;
 
 #define READ(k)                              \
         do {                                 \
@@ -2203,7 +2203,7 @@ start:
                                         n += snprintf(echo_buf + n, 128 - n, "%s ", km[i].k);
                                         echo(echo_buf);
                                         km = km[i].nested;
-					is_keychord = true;
+                                        is_keychord = true;
                                         READ(k);
                                         i = 0;
                                 }
