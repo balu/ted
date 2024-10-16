@@ -685,7 +685,7 @@ struct termios old_termios;
 
 void terminal_reset()
 {
-        tcsetattr(STDIN_FILENO, TCSANOW | TCSADRAIN, &old_termios);
+        tcsetattr(STDIN_FILENO, TCSADRAIN, &old_termios);
         set_cursor_type(DEFAULT);
 }
 
@@ -696,9 +696,10 @@ void terminal_setup()
         if (tcgetattr(STDIN_FILENO, &old_termios) == -1)
                 err_exit("terminal_setup: tcgetattr() failed");
 
+        new_termios = old_termios;
         cfmakeraw(&new_termios);
 
-        if (tcsetattr(STDIN_FILENO, TCSANOW | TCSADRAIN, &new_termios) == -1)
+        if (tcsetattr(STDIN_FILENO, TCSADRAIN, &new_termios) == -1)
                 err_exit("terminal_setup: tcsetattr() failed");
 
         set_cursor_type(BLINKING_BAR);
