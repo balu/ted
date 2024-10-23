@@ -1528,6 +1528,24 @@ void forward_word()
         }
 }
 
+bool is_point_at_beginning_of_word()
+{
+        if (is_buffer_empty())
+                return false;
+
+        if (is_point_at_end_of_buffer())
+                return false;
+
+        struct tedchar *p = char_at_point();
+
+        if (is_point_at_beginning_of_buffer())
+                return !is_whitespace(*p);
+
+        struct tedchar *q = retreat(p);
+
+        return !is_whitespace(*p) && is_whitespace(*q);
+}
+
 void backward_word()
 {
         if (is_buffer_empty())
@@ -1538,26 +1556,22 @@ void backward_word()
         ed.is_prefix = false;
 
         while (repeat--) {
-                backward_char();
-
-                if (is_point_at_beginning_of_buffer())
-                        return;
-
-                while (is_whitespace(*char_at_point()))
+                if (is_point_at_beginning_of_word() || is_point_at_end_of_buffer())
                         backward_char();
 
-                bool found_word = false;
-                while (1) {
-                        if (is_whitespace(*char_at_point())) {
-                                if (found_word)
-                                        forward_char();
-                                break;
-                        }
-
-                        found_word = true;
-
+                while (is_whitespace(*char_at_point())) {
                         backward_char();
+                        if (is_point_at_beginning_of_buffer())
+                                return;
                 }
+
+                while (!is_whitespace(*char_at_point())) {
+                        backward_char();
+                        if (is_point_at_beginning_of_buffer())
+                                return;
+                }
+
+                forward_char();
         }
 }
 
