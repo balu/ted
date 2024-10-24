@@ -653,24 +653,6 @@ void emit_cud(int n)
         emit_csi('B', n, -1);
 }
 
-enum cursor_type {
-        DEFAULT = 0,
-        BLINKING_BLOCK = 1,
-        STEADY_BLOCK = 2,
-        BLINKING_UNDERLINE = 3,
-        STEADY_UNDERLINE = 4,
-        BLINKING_BAR = 5,
-        STEADY_BAR = 6,
-};
-
-void set_cursor_type(enum cursor_type type)
-{
-        char buf[8] = {0};
-
-        sprintf(buf, "\x1b[%d q", type);
-        write(STDOUT_FILENO, buf, strlen(buf));
-}
-
 void err_exit(const char *message)
 {
         if (errno)
@@ -686,7 +668,6 @@ struct termios old_termios;
 void terminal_reset()
 {
         tcsetattr(STDIN_FILENO, TCSADRAIN, &old_termios);
-        set_cursor_type(DEFAULT);
 }
 
 void terminal_setup()
@@ -701,8 +682,6 @@ void terminal_setup()
 
         if (tcsetattr(STDIN_FILENO, TCSADRAIN, &new_termios) == -1)
                 err_exit("terminal_setup: tcsetattr() failed");
-
-        set_cursor_type(BLINKING_BAR);
 
         atexit(terminal_reset);
 }
