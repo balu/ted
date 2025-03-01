@@ -2388,25 +2388,31 @@ void editor_config_init(int argc, char *argv[])
         while ((c = getopt(argc, argv, "r:c:t:")) != -1) {
                 switch (c) {
                 case 'r':
-                        if (!*optarg) print_usage_and_exit();
+                        if (!*optarg)
+                                print_usage_and_exit();
                         rows = strtol(optarg, &endptr, 10);
-                        if (*endptr) print_usage_and_exit();
+                        if (*endptr)
+                                print_usage_and_exit();
                         if (rows < MIN_NLINES || rows > MAX_NCOLS)
                                 print_usage_and_exit();
                         ed.nlines = rows;
                         break;
                 case 'c':
-                        if (!*optarg) print_usage_and_exit();
+                        if (!*optarg)
+                                print_usage_and_exit();
                         cols = strtol(optarg, &endptr, 10);
-                        if (*endptr) print_usage_and_exit();
+                        if (*endptr)
+                                print_usage_and_exit();
                         if (cols < MIN_NCOLS || cols > MAX_NCOLS)
                                 print_usage_and_exit();
                         ed.ncols = cols;
                         break;
                 case 't':
-                        if (!*optarg) print_usage_and_exit();
+                        if (!*optarg)
+                                print_usage_and_exit();
                         tabs = strtol(optarg, &endptr, 10);
-                        if (*endptr) print_usage_and_exit();
+                        if (*endptr)
+                                print_usage_and_exit();
                         if (tabs < MIN_TABSTOP || tabs > MAX_TABSTOP)
                                 print_usage_and_exit();
                         ed.tabstop = tabs;
