@@ -16,8 +16,14 @@
 #include <termios.h>
 #include <unistd.h>
 
-#define NLINES (10)
-#define NCOLS (80)
+#define DEFAULT_NLINES (10)
+#define MIN_NLINES (5)
+#define MAX_NLINES (30)
+
+#define DEFAULT_NCOLS (72)
+#define MIN_NCOLS (30)
+#define MAX_NCOLS (120)
+
 #define TABSTOP (8)
 
 #define CONTINUATION_LINE_STR "\x1b[31m\\\x1b[m"
@@ -30,7 +36,7 @@
 
 #define BLKSIZE (4096)
 
-#define SCREENBUF_SIZE (NLINES * (NCOLS + 1) * 4)
+#define SCREENBUF_SIZE (MAX_NLINES * (MAX_NCOLS + 1) * 4)
 
 enum {
         NEWLINE = 0,
@@ -2358,26 +2364,56 @@ start:
 #undef READ
 }
 
-void editor_config_init()
+static void print_usage_and_exit()
 {
-        ed.nlines = NLINES;
-        ed.ncols = NCOLS;
+        err_exit("Usage: ted [-r rows] [-c cols] FILE\n");
+}
+
+void editor_config_init(int argc, char *argv[])
+{
+        int c;
+        char *endptr;
+        long rows, cols;
+
+        ed.nlines = DEFAULT_NLINES;
+        ed.ncols = DEFAULT_NCOLS;
+        while ((c = getopt(argc, argv, "r:c:")) != -1) {
+                switch (c) {
+                case 'r':
+                        if (!*optarg) print_usage_and_exit();
+                        rows = strtol(optarg, &endptr, 10);
+                        if (*endptr) print_usage_and_exit();
+                        if (rows < MIN_NLINES || rows > MAX_NCOLS)
+                                print_usage_and_exit();
+                        ed.nlines = rows;
+                        break;
+                case 'c':
+                        if (!*optarg) print_usage_and_exit();
+                        cols = strtol(optarg, &endptr, 10);
+                        if (*endptr) print_usage_and_exit();
+                        if (cols < MIN_NCOLS || cols > MAX_NCOLS)
+                                print_usage_and_exit();
+                        ed.ncols = cols;
+                        break;
+                }
+        }
+
         ed.tabstop = TABSTOP;
 }
 
-int main([[maybe_unused]] int argc, const char *argv[])
+int main([[maybe_unused]] int argc, char *argv[])
 {
         prog = argv[0];
 
         if (!isatty(STDIN_FILENO) || !isatty(STDOUT_FILENO))
                 err_exit("stdin and stdout should be tty.\n");
 
-        if (argc < 2)
-                err_exit("Usage: ted FILE\n");
+        editor_config_init(argc, argv);
 
-        editor_config_init();
+        if (optind >= argc)
+                print_usage_and_exit();
 
-        loadf(argv[1]);
+        loadf(argv[optind]);
 
         terminal_setup();
 
