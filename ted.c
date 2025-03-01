@@ -2401,7 +2401,7 @@ void editor_config_init(int argc, char *argv[])
         ed.tabstop = TABSTOP;
 }
 
-int main([[maybe_unused]] int argc, char *argv[])
+int main(int argc, char *argv[])
 {
         prog = argv[0];
 
