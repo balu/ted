@@ -24,7 +24,9 @@
 #define MIN_NCOLS (30)
 #define MAX_NCOLS (120)
 
-#define TABSTOP (8)
+#define DEFAULT_TABSTOP (8)
+#define MIN_TABSTOP (2)
+#define MAX_TABSTOP (8)
 
 #define CONTINUATION_LINE_STR "\x1b[31m\\\x1b[m"
 #define EMPTY_LINE_STR "\x1b[34m~\x1b[m"
@@ -2366,18 +2368,24 @@ start:
 
 static void print_usage_and_exit()
 {
-        err_exit("Usage: ted [-r rows] [-c cols] FILE\n");
+        fprintf(stderr, "Usage: ted [OPTION] FILE\n");
+        fprintf(stderr, "Edit FILE on the terminal.\n\n");
+        fprintf(stderr, "  -r ROWS\tShow ROWS lines at a time.\n");
+        fprintf(stderr, "  -c COLS\tShow COLS columns per screen line.\n");
+        fprintf(stderr, "  -t TABS\tUse TABS columns for each tabstop.\n");
+        exit(EXIT_FAILURE);
 }
 
 void editor_config_init(int argc, char *argv[])
 {
         int c;
         char *endptr;
-        long rows, cols;
+        long rows, cols, tabs;
 
         ed.nlines = DEFAULT_NLINES;
         ed.ncols = DEFAULT_NCOLS;
-        while ((c = getopt(argc, argv, "r:c:")) != -1) {
+        ed.tabstop = DEFAULT_TABSTOP;
+        while ((c = getopt(argc, argv, "r:c:t:")) != -1) {
                 switch (c) {
                 case 'r':
                         if (!*optarg) print_usage_and_exit();
@@ -2395,10 +2403,16 @@ void editor_config_init(int argc, char *argv[])
                                 print_usage_and_exit();
                         ed.ncols = cols;
                         break;
+                case 't':
+                        if (!*optarg) print_usage_and_exit();
+                        tabs = strtol(optarg, &endptr, 10);
+                        if (*endptr) print_usage_and_exit();
+                        if (tabs < MIN_TABSTOP || tabs > MAX_TABSTOP)
+                                print_usage_and_exit();
+                        ed.tabstop = tabs;
+                        break;
                 }
         }
-
-        ed.tabstop = TABSTOP;
 }
 
 int main(int argc, char *argv[])
