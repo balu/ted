@@ -2029,50 +2029,49 @@ static void maybe_insert_trailing_newline()
         }
 }
 
+#define for_each_block(buf, sz, i, body)                                 \
+        do {                                                             \
+                struct tedchar *p = first_char();                        \
+                while (p) {                                              \
+                        while (p) {                                      \
+                                if (is_newline(*p)) {                    \
+                                        if (ed.filetype == UNIX) {       \
+                                                if (i >= sz)             \
+                                                        break;           \
+                                                                         \
+                                                buf[i++] = '\n';         \
+                                        } else if (ed.filetype == DOS) { \
+                                                if (i >= sz - 1)         \
+                                                        break;           \
+                                                                         \
+                                                buf[i++] = '\r';         \
+                                                buf[i++] = '\n';         \
+                                        }                                \
+                                } else {                                 \
+                                        size_t k = utf8_count(p->u.c);   \
+                                                                         \
+                                        if (i + k >= sz)                 \
+                                                break;                   \
+                                                                         \
+                                        for (size_t j = 0; j < k; ++j)   \
+                                                buf[i++] = p->u.c[j];    \
+                                }                                        \
+                                p = advance(p);                          \
+                        }                                                \
+                        body;                                            \
+                        i = 0;                                           \
+                }                                                        \
+        } while (0)
+
 void save_buffer()
 {
         maybe_insert_trailing_newline();
 
         int fd = open(ed.filename, O_CREAT | O_TRUNC | O_WRONLY);
 
-        uint8_t buf[BLKSIZE] = {0};
+        uint8_t buf[BUFSIZE] = {0};
         size_t i = 0;
-
-        struct tedchar *p = first_char();
-
-        while (1) {
-                while (p) {
-                        if (is_newline(*p)) {
-                                if (ed.filetype == UNIX) {
-                                        if (i >= BLKSIZE)
-                                                break;
-
-                                        buf[i++] = '\n';
-                                } else if (ed.filetype == DOS) {
-                                        if (i >= BLKSIZE - 1)
-                                                break;
-
-                                        buf[i++] = '\r';
-                                        buf[i++] = '\n';
-                                }
-                        } else {
-                                size_t k = utf8_count(p->u.c);
-
-                                if (i + k >= BLKSIZE)
-                                        break;
-
-                                for (size_t j = 0; j < k; ++j) {
-                                        buf[i++] = p->u.c[j];
-                                }
-                        }
-                        p = advance(p);
-                }
-
-                write(fd, buf, i);
-                i = 0;
-                if (!p)
-                        break;
-        }
+        for_each_block(buf, BUFSIZE, i, { write(fd, buf, i); });
 
         close(fd);
 
