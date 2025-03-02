@@ -4,6 +4,7 @@
 #include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <signal.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -2202,6 +2203,15 @@ void cancel()
         echo_clear();
 }
 
+void suspend()
+{
+        emit_clear_screen();
+        terminal_reset();
+        raise(SIGTSTP);
+        terminal_setup();
+        reserve_screen();
+}
+
 const char *prog;
 
 #define CMD(c)                               \
@@ -2249,6 +2259,7 @@ const struct keymap_entry global_keymap[] = {
         {"C-w", CMD(kill_region)},
         {"C-x", MAP(extended_keymap)},
         {"C-y", CMD(yank)},
+        {"C-z", CMD(suspend)},
         {"M-O", CMD(open_previous_line)},
         {"M-a", CMD(beginning_of_line)},
         {"M-b", CMD(backward_word)},
