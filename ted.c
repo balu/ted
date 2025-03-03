@@ -4,6 +4,8 @@
 #include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <libgen.h>
+#include <limits.h>
 #include <signal.h>
 #include <stdarg.h>
 #include <stdbool.h>
@@ -799,6 +801,8 @@ struct {
         enum { UNIX, DOS } filetype;
         bool ensure_trailing_newline;
         const char *filename;
+        const char *dirname;
+        const char *basename;
         struct tedchar buffer[BUFSIZE];
         struct tedchar *gap_start;
         struct tedchar *gap_end;
@@ -990,6 +994,17 @@ void loadf(const char *filename)
 {
         int fd;
 
+        char *rp = realpath(filename, NULL);
+        if (!rp) {
+                perror("loadf: Failed to obtain full path.");
+                goto err3;
+        }
+
+        char *d1 = strdup(rp);
+        char *b1 = strdup(rp);
+        char *d = strdup(dirname(d1));
+        char *b = strdup(basename(b1));
+
         if ((fd = open(filename, O_RDONLY | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)) < 0) {
                 perror("loadf: Failed to open file");
                 goto err3;
@@ -1032,7 +1047,9 @@ void loadf(const char *filename)
 
         free(buf);
 
-        ed.filename = filename;
+        ed.filename = rp;
+        ed.dirname = d;
+        ed.basename = b;
 
         ed.ensure_trailing_newline = true;
 
