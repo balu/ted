@@ -1996,8 +1996,6 @@ void delete_region()
         if (nchars == 0)
                 return;
 
-        ed.is_dirty = true;
-
         move_to(low);
 
         while (nchars--)
@@ -2019,8 +2017,6 @@ void delete_backward_char()
         while (repeat--) {
                 if (is_buffer_empty() || is_point_at_beginning_of_buffer())
                         return;
-
-                ed.is_dirty = true;
 
                 backward_char();
                 delete_char();
