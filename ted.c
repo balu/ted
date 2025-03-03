@@ -31,6 +31,8 @@
 #define MIN_TABSTOP (2)
 #define MAX_TABSTOP (8)
 
+#define MARK_RING_SIZE (16)
+
 #define CONTINUATION_LINE_STR "\x1b[31m\\\x1b[m"
 #define EMPTY_LINE_STR "\x1b[34m~\x1b[m"
 
@@ -811,9 +813,14 @@ struct {
         size_t cursor_col;
         size_t goal_col;
         bool force_goal_col;
-        size_t mark;
-        bool is_mark_active;
-        bool is_selection_active;
+        struct {
+                size_t m[MARK_RING_SIZE];
+                size_t len;
+                size_t first;
+                size_t last;
+                size_t current;
+                bool is_active;
+        } marks;
         bool is_dirty;
         struct key last_key;
         bool preserve_echo;
@@ -986,8 +993,7 @@ size_t tedchar_from_bytes(struct tedchar dest[], size_t n, const uint8_t src[], 
 
 void disable_mark()
 {
-        ed.is_mark_active = false;
-        ed.is_selection_active = false;
+        ed.marks.is_active = false;
 }
 
 void loadf(const char *filename)
@@ -1060,7 +1066,11 @@ void loadf(const char *filename)
         ed.goal_col = 0;
         ed.tl = NULL;
 
-        disable_mark();
+        ed.marks.len = 0;
+        ed.marks.first = 0;
+        ed.marks.last = 0;
+        ed.marks.current = 0;
+        ed.marks.is_active = false;
 
         ed.is_dirty = false;
 
@@ -1245,10 +1255,17 @@ struct tedchar *first_of_visual_line(struct tedchar *p)
         return r;
 }
 
+size_t where()
+{
+        if (is_point_at_end_of_buffer())
+                return buffer_size();
+        return index_of(char_at_point());
+}
+
 void point_mark_low_high(size_t *low, size_t *high)
 {
-        size_t p = is_point_at_end_of_buffer() ? buffer_size() : index_of(char_at_point());
-        size_t m = ed.mark;
+        size_t p = where();
+        size_t m = ed.marks.m[ed.marks.current];
 
         *low = p <= m ? p : m;
         *high = p <= m ? m : p;
@@ -1262,7 +1279,7 @@ void refresh()
 
         size_t low = 0, high = 0;
 
-        if (ed.is_selection_active) {
+        if (ed.marks.is_active) {
                 point_mark_low_high(&low, &high);
         }
 
@@ -1276,14 +1293,13 @@ void refresh()
                 bool newline = false;
 
                 while (current) {
-                        if (ed.is_selection_active && !highlight_active &&
-                            index_of(current) >= low && index_of(current) < high) {
+                        if (ed.marks.is_active && !highlight_active && index_of(current) >= low &&
+                            index_of(current) < high) {
                                 highlight_on();
                                 highlight_active = true;
                         }
 
-                        if (ed.is_selection_active && highlight_active &&
-                            index_of(current) == high) {
+                        if (ed.marks.is_active && highlight_active && index_of(current) == high) {
                                 highlight_off();
                                 highlight_active = false;
                         }
@@ -1773,6 +1789,13 @@ void goto_line()
         }
 }
 
+void move_to(size_t n)
+{
+        beginning_of_buffer();
+        while (n--)
+                forward_char();
+}
+
 void goto_percent()
 {
         size_t percent = ed.prefix_arg;
@@ -1782,13 +1805,7 @@ void goto_percent()
         else if (ed.prefix_arg > 100)
                 percent = 100;
 
-        size_t total = buffer_size();
-
-        size_t n = (total * percent) / 100;
-
-        beginning_of_buffer();
-        while (n--)
-                forward_char();
+        move_to((buffer_size() * percent) / 100);
 }
 
 void beginning_of_buffer()
@@ -1981,9 +1998,7 @@ void delete_region()
 
         ed.is_dirty = true;
 
-        beginning_of_buffer();
-        while (low--)
-                forward_char();
+        move_to(low);
 
         while (nchars--)
                 delete_char();
@@ -1991,7 +2006,7 @@ void delete_region()
 
 void delete_backward_char()
 {
-        if (ed.is_selection_active) {
+        if (ed.marks.is_active) {
                 delete_region();
                 disable_mark();
                 return;
@@ -2014,7 +2029,7 @@ void delete_backward_char()
 
 void delete_forward_char()
 {
-        if (ed.is_selection_active) {
+        if (ed.marks.is_active) {
                 delete_region();
                 disable_mark();
                 return;
@@ -2035,14 +2050,12 @@ static void maybe_insert_trailing_newline()
         if (is_point_at_end_of_buffer()) {
                 do_insert_char(tedchar_newline());
         } else {
-                size_t where = index_of(char_at_point());
+                size_t save = index_of(char_at_point());
 
                 end_of_buffer();
                 do_insert_char(tedchar_newline());
 
-                beginning_of_buffer();
-                while (where--)
-                        forward_char();
+                move_to(save);
         }
 }
 
@@ -2095,11 +2108,16 @@ void save_buffer()
         ed.is_dirty = false;
 }
 
-void set_mark()
+void do_push_mark(size_t w)
 {
-        ed.mark = is_point_at_end_of_buffer() ? buffer_size() : index_of(char_at_point());
-        ed.is_mark_active = true;
-        ed.is_selection_active = true;
+        ed.marks.m[ed.marks.last] = w;
+        ed.marks.current = ed.marks.last;
+        ed.marks.last = (ed.marks.last + 1) % MARK_RING_SIZE;
+
+        if (ed.marks.len == MARK_RING_SIZE)
+                ++ed.marks.first;
+        else
+                ++ed.marks.len;
 }
 
 void exchange_point_and_mark()
@@ -2107,20 +2125,45 @@ void exchange_point_and_mark()
         if (is_buffer_empty())
                 return;
 
-        if (!ed.is_mark_active)
+        if (!ed.marks.len)
                 return;
 
-        size_t save_mark = ed.mark;
-        ed.mark = is_point_at_end_of_buffer() ? buffer_size() : index_of(char_at_point());
+        size_t save = ed.marks.m[ed.marks.current];
+        ed.marks.m[ed.marks.current] = where();
 
-        beginning_of_buffer();
-        while (save_mark--)
-                forward_char();
+        move_to(save);
+}
+
+void set_mark()
+{
+        if (ed.is_prefix) {
+                if (!ed.marks.len)
+                        return;
+
+                exchange_point_and_mark();
+
+                if (ed.marks.len <= 1)
+                        return;
+
+                if (ed.marks.current == ed.marks.first)
+                        if (ed.marks.last > 0)
+                                ed.marks.current = ed.marks.last - 1;
+                        else
+                                ed.marks.current = MARK_RING_SIZE - 1;
+                else if (ed.marks.current == 0)
+                        ed.marks.current = MARK_RING_SIZE - 1;
+                else
+                        ed.marks.current -= 1;
+                return;
+        }
+
+        do_push_mark(where());
+        ed.marks.is_active = true;
 }
 
 void kill_region_save()
 {
-        if (!ed.is_selection_active)
+        if (!ed.marks.is_active)
                 return;
 
         ed.kill_size = 0;
@@ -2137,12 +2180,12 @@ void kill_region_save()
                 t = advance(t);
         }
 
-        ed.is_selection_active = false;
+        ed.marks.is_active = false;
 }
 
 void kill_region()
 {
-        if (!ed.is_selection_active)
+        if (!ed.marks.is_active)
                 return;
 
         kill_region_save();
@@ -2153,13 +2196,11 @@ void kill_region()
 
         size_t nchars = high - low;
 
-        beginning_of_buffer();
-        for (size_t k = 0; k < low; ++k)
-                forward_char();
+        move_to(low);
         while (nchars--)
                 delete_char();
 
-        ed.is_selection_active = false;
+        ed.marks.is_active = false;
 }
 
 void yank()
@@ -2222,7 +2263,7 @@ void kill_ted()
 
 void cancel()
 {
-        ed.is_selection_active = false;
+        ed.marks.is_active = false;
         echo_clear();
 }
 
@@ -2385,7 +2426,7 @@ start:
 
                 if (!km[i].k) {
                         if (is_textchar(k) && !is_keychord) {
-                                if (ed.is_selection_active) {
+                                if (ed.marks.is_active) {
                                         delete_region();
                                         disable_mark();
                                 }
