@@ -57,12 +57,15 @@ The following commands manipulate the selection in the buffer.
 
 - `C-<space>` Set mark. The mark is a position in the buffer that is
   independent of point. The text between mark and point is the
-  selected text. To cancel a selection (but not the mark), type `C-g`.
+  selected text. To deactivate the mark, type `C-g`.
 - `C-w` Kill (cut) text.
 - `M-w` Kill and save (copy) text.
 - `C-y` Yank (paste) text.
 
-You can exchange point and mark using the command `C-x C-x`.
+You can exchange point and mark using the command `C-x C-x`. The marks
+are kept in a mark ring and each `C-<space>` pushes the current
+position into it. You can cycle the point through the saved marks
+using the command `C-u C-<space>` repeatedly.
 
 The following commands allow conveniently adding new lines of text.
 
