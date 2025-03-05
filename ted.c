@@ -2432,7 +2432,7 @@ start:
                                 ed.last_key = k;
                                 insert_char();
                         } else {
-                                echo_error("Undefined key");
+                                echo_error("Key is undefined.");
                         }
                 }
         }
