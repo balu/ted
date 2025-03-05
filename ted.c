@@ -1894,7 +1894,7 @@ void do_insert_char(struct tedchar t)
                 if (!ed.force_goal_col)
                         ed.goal_col = ed.cursor_col;
         } else {
-                assert(0);
+                assert(0); // TODO: Re-allocate or save and quit.
         }
 }
 
