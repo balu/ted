@@ -1891,6 +1891,8 @@ void do_insert_char(struct tedchar t)
                         ++ed.cursor_row;
                 }
                 ed.cursor_col = new_col;
+                if (!ed.force_goal_col)
+                        ed.goal_col = ed.cursor_col;
         } else {
                 assert(0);
         }
