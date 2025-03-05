@@ -1002,8 +1002,7 @@ void loadf(const char *filename)
 
         char *rp = realpath(filename, NULL);
         if (!rp) {
-                perror("loadf: Failed to obtain full path.");
-                goto err3;
+                rp = strdup(filename);
         }
 
         char *d1 = strdup(rp);
@@ -1011,12 +1010,27 @@ void loadf(const char *filename)
         char *d = strdup(dirname(d1));
         char *b = strdup(basename(b1));
 
+        struct stat st;
+
+        if (stat(d, &st)) {
+                perror("loadf: stat() failed");
+                goto err3;
+        }
+
+        if (!S_ISDIR(st.st_mode)) {
+                fprintf(stderr, "loadf: '%s': not a directory.\n", d);
+                goto err3;
+        }
+
+        if (access(d, R_OK) != 0) {
+                fprintf(stderr, "loadf: Cannot read directory '%s'.\n", d);
+                goto err3;
+        }
+
         if ((fd = open(filename, O_RDONLY | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)) < 0) {
                 perror("loadf: Failed to open file");
                 goto err3;
         }
-
-        struct stat st;
 
         if (fstat(fd, &st) < 0) {
                 perror("loadf: fstat() failed");
