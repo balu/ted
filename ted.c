@@ -454,6 +454,11 @@ const char *process_modifiers(const char *s, struct key *k)
                 return process_modifiers(s + 2, k);
         }
 
+        if (s[0] && s[0] == 'S' && s[1] && s[1] == '-') {
+                k->shift = 1;
+                return process_modifiers(s + 2, k);
+        }
+
         return s;
 }
 
