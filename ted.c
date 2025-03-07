@@ -336,10 +336,12 @@ struct key scan_cs(uint8_t buf[])
                 assert(0);
         }
 
-        k.shift = (k.m - 1) & 0x1;
-        k.meta = (k.m - 1) & 0x2;
-        k.ctrl = (k.m - 1) & 0x4;
-        k.super = (k.m - 1) & 0x8;
+        k.shift = !!((k.m - 1) & 0x1);
+        k.meta = !!((k.m - 1) & 0x2);
+        k.ctrl = !!((k.m - 1) & 0x4);
+        k.super = !!((k.m - 1) & 0x8);
+        k.n = !!k.n;
+        k.m = !!k.m;
 
         return k;
 }
@@ -447,7 +449,7 @@ const char *process_modifiers(const char *s, struct key *k)
                 return process_modifiers(s + 2, k);
         }
 
-        if (s[0] && s[0] == 'C' && s[1] && s[1] == '-') {
+        if (s[0] && s[0] == 's' && s[1] && s[1] == '-') {
                 k->super = 1;
                 return process_modifiers(s + 2, k);
         }
