@@ -2180,6 +2180,30 @@ void set_mark()
         ed.marks.is_active = true;
 }
 
+void set_mark_forward_word()
+{
+        set_mark();
+        forward_word();
+}
+
+void set_mark_backward_word()
+{
+        set_mark();
+        backward_word();
+}
+
+void set_mark_forward_paragraph()
+{
+        set_mark();
+        forward_paragraph();
+}
+
+void set_mark_backward_paragraph()
+{
+        set_mark();
+        backward_paragraph();
+}
+
 void kill_region_save()
 {
         if (!ed.marks.is_active)
@@ -2361,6 +2385,10 @@ const struct keymap_entry global_keymap[] = {
         {"M->", CMD(end_of_buffer)},
         {"C-M-b", CMD(backward_paragraph)},
         {"C-M-f", CMD(forward_paragraph)},
+        {"C-S-<down>", CMD(set_mark_forward_paragraph)},
+        {"C-S-<left>", CMD(set_mark_backward_word)},
+        {"C-S-<right>", CMD(set_mark_forward_word)},
+        {"C-S-<up>", CMD(set_mark_backward_paragraph)},
         {"<backspace>", CMD(delete_backward_char)},
         {"<delete>", CMD(delete_forward_char)},
         {"<down>", CMD(next_row)},
