@@ -812,6 +812,8 @@ struct {
         const char *filename;
         const char *dirname;
         const char *basename;
+        mode_t filemode;
+        struct timespec mtime;
         struct tedchar buffer[BUFSIZE];
         struct tedchar *gap_start;
         struct tedchar *gap_end;
@@ -1077,6 +1079,8 @@ void loadf(const char *filename)
         ed.filename = rp;
         ed.dirname = d;
         ed.basename = b;
+        ed.filemode = st.st_mode;
+        ed.mtime = st.st_mtim;
 
         ed.ensure_trailing_newline = true;
 
@@ -2112,19 +2116,103 @@ static void maybe_insert_trailing_newline()
                 }                                                        \
         } while (0)
 
+int write_all(int fd, uint8_t *buf, size_t n)
+{
+        ssize_t r;
+        int retries = 10;
+
+        while (n) {
+                r = write(fd, buf, n);
+                if (r > 0) {
+                        n -= r;
+                } else if (r < 0) {
+                        switch (errno) {
+                        case EINTR:
+                                if (!retries)
+                                        return EINTR;
+                                --retries;
+                                break;
+                        default:
+                                return r;
+                        }
+                } else {
+                        if (!retries)
+                                return EAGAIN;
+                        --retries;
+                }
+        }
+
+        return 0;
+}
+
+int open_save_file(const char *dirname, const char *basename, char *buf, size_t n)
+{
+        int fd;
+        int flags = O_CREAT | O_TRUNC | O_WRONLY | O_EXCL;
+
+        for (int i = 0; i < 100; ++i) {
+                snprintf(buf, n, "%s/.%s.%d", dirname, basename, i);
+                if (access(buf, F_OK)) {
+                        fd = open(buf, flags, ed.filemode);
+                        return fd;
+                }
+        }
+
+        return -1;
+}
+
+bool timespec_lt(struct timespec a, struct timespec b)
+{
+        return a.tv_sec < b.tv_sec || a.tv_nsec < b.tv_nsec;
+}
+
 void save_buffer()
 {
         maybe_insert_trailing_newline();
 
-        int fd = open(ed.filename, O_CREAT | O_TRUNC | O_WRONLY);
-
+        char pathbuf[PATH_MAX];
         uint8_t buf[BUFSIZE] = {0};
         size_t i = 0;
-        for_each_block(buf, BUFSIZE, i, { write(fd, buf, i); });
 
-        close(fd);
+        int fd = open_save_file(ed.dirname, ed.basename, pathbuf, PATH_MAX);
+        if (fd < 0) {
+                fd = open_save_file(P_tmpdir, ed.basename, pathbuf, PATH_MAX);
+                if (fd < 0) {
+                        echo_error("Failed to save file.");
+                        return;
+                }
+        }
 
+        for_each_block(buf, BUFSIZE, i, {
+                if (write_all(fd, buf, i))
+                        return;
+        });
+
+        if (close(fd)) {
+                echo_error("Failed to save file.");
+                return;
+        }
+
+        struct stat st;
+        stat(ed.filename, &st);
+
+        if (timespec_lt(ed.mtime, st.st_mtim)) {
+                echo_error("File has been modified. Wrote to \'%s\'", pathbuf);
+                return;
+        }
+
+        if (rename(pathbuf, ed.filename)) {
+                echo_error("\'%s\' rename failed.", pathbuf);
+                return;
+        }
+
+        unlink(pathbuf);
+
+        echo_info("Wrote %s", ed.filename);
+        ed.preserve_echo = true;
         ed.is_dirty = false;
+        if (!stat(ed.filename, &st))
+                ed.mtime = st.st_mtim;
 }
 
 void do_push_mark(size_t w)
