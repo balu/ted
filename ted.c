@@ -2204,6 +2204,30 @@ void set_mark_backward_paragraph()
         backward_paragraph();
 }
 
+void set_mark_next_row()
+{
+        set_mark();
+        next_row();
+}
+
+void set_mark_previous_row()
+{
+        set_mark();
+        previous_row();
+}
+
+void set_mark_forward_char()
+{
+        set_mark();
+        forward_char();
+}
+
+void set_mark_backward_char()
+{
+        set_mark();
+        backward_char();
+}
+
 void kill_region_save()
 {
         if (!ed.marks.is_active)
@@ -2383,6 +2407,10 @@ const struct keymap_entry global_keymap[] = {
         {"M-%", CMD(goto_percent)},
         {"M-<", CMD(beginning_of_buffer)},
         {"M->", CMD(end_of_buffer)},
+        {"S-<down>", CMD(set_mark_next_row)},
+        {"S-<left>", CMD(set_mark_backward_char)},
+        {"S-<right>", CMD(set_mark_forward_char)},
+        {"S-<up>", CMD(set_mark_previous_row)},
         {"C-M-b", CMD(backward_paragraph)},
         {"C-M-f", CMD(forward_paragraph)},
         {"C-S-<down>", CMD(set_mark_forward_paragraph)},
