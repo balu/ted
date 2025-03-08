@@ -809,9 +809,9 @@ struct {
         size_t tabstop;
         enum { UNIX, DOS } filetype;
         bool ensure_trailing_newline;
-        const char *filename;
-        const char *dirname;
-        const char *basename;
+        char *filename;
+        char *dirname;
+        char *basename;
         mode_t filemode;
         struct timespec mtime;
         struct tedchar buffer[BUFSIZE];
@@ -1013,11 +1013,31 @@ void loadf(const char *filename)
         if (!rp) {
                 rp = strdup(filename);
         }
+        if (!rp) {
+                perror("loadf: strdup() failed");
+                return;
+        }
 
         char *d1 = strdup(rp);
         char *b1 = strdup(rp);
+        if (!d1 || !b1) {
+                free(d1);
+                free(b1);
+                perror("loadf: strdup() failed");
+                return;
+        }
+
         char *d = strdup(dirname(d1));
         char *b = strdup(basename(b1));
+        if (!d || !b) {
+                free(d);
+                free(b);
+                perror("loadf: strdup() failed");
+                return;
+        }
+
+        free(d1);
+        free(b1);
 
         struct stat st;
 
@@ -2398,15 +2418,19 @@ void quit()
         if (ed.is_dirty) {
                 if (ed.is_prefix) {
                         save_buffer();
-                        emit_clear_screen();
-                        exit(0);
+                        if (!ed.is_dirty)
+                                goto exit_success;
                 }
 
                 echo_error("Save and quit: C-u C-x C-c. Quit without saving: C-x M-c.");
                 return;
         }
 
+exit_success:
         emit_clear_screen();
+        free(ed.filename);
+        free(ed.dirname);
+        free(ed.basename);
         exit(0);
 }
 
