@@ -680,7 +680,7 @@ void err_exit(const char *message)
         if (errno)
                 perror(message);
         else
-                fprintf(stderr, message);
+                fprintf(stderr, "%s", message);
 
         exit(1);
 }
@@ -772,7 +772,7 @@ struct position cpr()
         assert(n > 0);
         buf[n] = 0;
 
-        printf(buf);
+        printf("%s", buf);
         sscanf(buf, "\x1b[%zu;%zuR", &p.y, &p.x);
 
         return p;
