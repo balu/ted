@@ -47,9 +47,10 @@
 
 #define SCREENBUF_SIZE (MAX_NLINES * (MAX_NCOLS + 1) * 4)
 
-#define guard(cond) do {                        \
-                if (!cond)                      \
-                        return;                 \
+#define guard(cond)             \
+        do {                    \
+                if (!cond)      \
+                        return; \
         } while (0)
 
 enum {
@@ -2513,14 +2514,10 @@ struct keymap_entry {
 };
 
 const struct keymap_entry extended_keymap[] = {
-        {"=", CMD(show_line_column)},
-        {"C-c", CMD(quit)},
-        {"C-n", CMD(set_goal_column)},
-        {"C-q", CMD(toggle_read_only_mode)},
-        {"C-s", CMD(save_buffer)},
-        {"C-x", CMD(exchange_point_and_mark)},
-        {"M-c", CMD(kill_ted)},
-        {0, CMD(cancel)},
+        {"=", CMD(show_line_column)},  {"C-c", CMD(quit)},
+        {"C-n", CMD(set_goal_column)}, {"C-q", CMD(toggle_read_only_mode)},
+        {"C-s", CMD(save_buffer)},     {"C-x", CMD(exchange_point_and_mark)},
+        {"M-c", CMD(kill_ted)},        {0, CMD(cancel)},
 };
 
 const struct keymap_entry global_keymap[] = {
