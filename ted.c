@@ -31,6 +31,8 @@
 #define MIN_TABSTOP (2)
 #define MAX_TABSTOP (8)
 
+#define DEFAULT_FILETYPE (UNIX)
+
 #define MARK_RING_SIZE (16)
 
 #define CONTINUATION_LINE_STR "\x1b[31m\\\x1b[m"
@@ -1095,8 +1097,6 @@ void loadf(const char *filename)
         }
 
         close(fd);
-
-        ed.filetype = UNIX; // TODO: Detect automatically, allow user to change.
 
         n = tedchar_from_bytes(ed.buffer, BUFSIZE, buf, st.st_size);
 
@@ -2674,6 +2674,7 @@ static void print_usage_and_exit()
         fprintf(stderr, "  -r ROWS\tShow ROWS lines at a time.\n");
         fprintf(stderr, "  -c COLS\tShow COLS columns per screen line.\n");
         fprintf(stderr, "  -t TABS\tUse TABS columns for each tabstop.\n");
+        fprintf(stderr, "  -f unix|dos\tUse unix or dos line-endings.\n");
         exit(EXIT_FAILURE);
 }
 
@@ -2686,7 +2687,8 @@ void editor_config_init(int argc, char *argv[])
         ed.nlines = DEFAULT_NLINES;
         ed.ncols = DEFAULT_NCOLS;
         ed.tabstop = DEFAULT_TABSTOP;
-        while ((c = getopt(argc, argv, "r:c:t:")) != -1) {
+        ed.filetype = DEFAULT_FILETYPE;
+        while ((c = getopt(argc, argv, "r:c:t:f:")) != -1) {
                 switch (c) {
                 case 'r':
                         if (!*optarg)
@@ -2717,6 +2719,16 @@ void editor_config_init(int argc, char *argv[])
                         if (tabs < MIN_TABSTOP || tabs > MAX_TABSTOP)
                                 print_usage_and_exit();
                         ed.tabstop = tabs;
+                        break;
+                case 'f':
+                        if (!*optarg)
+                                print_usage_and_exit();
+                        if (!strcmp(optarg, "dos"))
+                                ed.filetype = DOS;
+                        else if (!strcmp(optarg, "unix"))
+                                ed.filetype = UNIX;
+                        else
+                                print_usage_and_exit();
                         break;
                 }
         }
