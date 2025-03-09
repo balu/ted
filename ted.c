@@ -45,6 +45,11 @@
 
 #define SCREENBUF_SIZE (MAX_NLINES * (MAX_NCOLS + 1) * 4)
 
+#define guard(cond) do {                        \
+                if (!cond)                      \
+                        return;                 \
+        } while (0)
+
 enum {
         NEWLINE = 0,
         UTF8 = 1,
@@ -830,6 +835,7 @@ struct {
                 size_t current;
                 bool is_active;
         } marks;
+        bool is_read_only;
         bool is_dirty;
         struct key last_key;
         bool preserve_echo;
@@ -1117,6 +1123,7 @@ void loadf(const char *filename)
         ed.marks.current = 0;
         ed.marks.is_active = false;
 
+        ed.is_read_only = false;
         ed.is_dirty = false;
 
         ed.preserve_echo = false;
@@ -1949,6 +1956,8 @@ void insert_char()
 
         assert(is_textchar(k));
 
+        guard(!ed.is_read_only);
+
         struct tedchar t;
 
         if (key_eq(k, kbd("<cr>")))
@@ -1969,6 +1978,8 @@ void insert_char()
 
 void open_line()
 {
+        guard(!ed.is_read_only);
+
         size_t repeat = ed.is_prefix ? ed.prefix_arg : 1;
 
         ed.is_prefix = false;
@@ -1981,6 +1992,8 @@ void open_line()
 
 void open_next_line()
 {
+        guard(!ed.is_read_only);
+
         size_t repeat = ed.is_prefix ? ed.prefix_arg : 1;
 
         ed.is_prefix = false;
@@ -1993,6 +2006,8 @@ void open_next_line()
 
 void open_previous_line()
 {
+        guard(!ed.is_read_only);
+
         size_t repeat = ed.is_prefix ? ed.prefix_arg : 1;
 
         ed.is_prefix = false;
@@ -2005,6 +2020,8 @@ void open_previous_line()
 
 void delete_char()
 {
+        guard(!ed.is_read_only);
+
         size_t repeat = ed.is_prefix ? ed.prefix_arg : 1;
 
         ed.is_prefix = false;
@@ -2029,6 +2046,8 @@ void delete_char()
 
 void delete_region()
 {
+        guard(!ed.is_read_only);
+
         size_t low, high;
 
         point_mark_low_high(&low, &high);
@@ -2051,6 +2070,8 @@ void delete_region()
 
 void delete_backward_char()
 {
+        guard(!ed.is_read_only);
+
         if (ed.marks.is_active) {
                 delete_region();
                 disable_mark();
@@ -2072,6 +2093,8 @@ void delete_backward_char()
 
 void delete_forward_char()
 {
+        guard(!ed.is_read_only);
+
         if (ed.marks.is_active) {
                 delete_region();
                 disable_mark();
@@ -2338,6 +2361,8 @@ void set_mark_backward_char()
 
 void kill_region_save()
 {
+        guard(!ed.is_read_only);
+
         if (!ed.marks.is_active)
                 return;
 
@@ -2380,6 +2405,8 @@ void kill_region()
 
 void yank()
 {
+        guard(!ed.is_read_only);
+
         size_t repeat = ed.is_prefix ? ed.prefix_arg : 1;
 
         ed.is_prefix = false;
@@ -2410,6 +2437,13 @@ void show_line_column()
         }
 
         echo_info("L%uC%u", line_no, col_no);
+        ed.preserve_echo = true;
+}
+
+void toggle_read_only_mode()
+{
+        ed.is_read_only = !ed.is_read_only;
+        echo_info("Read-Only mode %s.", ed.is_read_only ? "enabled" : "disabled");
         ed.preserve_echo = true;
 }
 
@@ -2482,6 +2516,7 @@ const struct keymap_entry extended_keymap[] = {
         {"=", CMD(show_line_column)},
         {"C-c", CMD(quit)},
         {"C-n", CMD(set_goal_column)},
+        {"C-q", CMD(toggle_read_only_mode)},
         {"C-s", CMD(save_buffer)},
         {"C-x", CMD(exchange_point_and_mark)},
         {"M-c", CMD(kill_ted)},
