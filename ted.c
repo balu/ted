@@ -35,6 +35,10 @@
 
 #define MARK_RING_SIZE (16)
 
+#define SEARCH_SIZE (100)
+
+#define CMD_MAX (256)
+
 #define CONTINUATION_LINE_STR "\x1b[31m\\\x1b[m"
 #define EMPTY_LINE_STR "\x1b[34m~\x1b[m"
 
@@ -838,6 +842,11 @@ struct {
                 size_t current;
                 bool is_active;
         } marks;
+        struct {
+                size_t results[SEARCH_SIZE];
+                size_t last;
+                size_t current;
+        } search;
         bool is_read_only;
         bool is_dirty;
         struct key last_key;
@@ -1123,6 +1132,9 @@ void loadf(const char *filename)
         ed.marks.last = 0;
         ed.marks.current = 0;
         ed.marks.is_active = false;
+
+        ed.search.last = 0;
+        ed.search.current = 0;
 
         ed.is_read_only = false;
         ed.is_dirty = false;
@@ -2454,6 +2466,112 @@ void toggle_read_only_mode()
         ed.preserve_echo = true;
 }
 
+void search_previous()
+{
+        if (!ed.search.last)
+                return;
+
+        if (ed.search.current == 0)
+                ed.search.current = ed.search.last - 1;
+        else
+                --ed.search.current;
+
+        move_to(ed.search.results[ed.search.current]);
+}
+
+void search_next()
+{
+        if (!ed.search.last)
+                return;
+
+        ++ed.search.current;
+        if (ed.search.current == ed.search.last)
+                ed.search.current = 0;
+
+        move_to(ed.search.results[ed.search.current]);
+}
+
+void search_buffer()
+{
+        char cmd[CMD_MAX];
+        char *tmp;
+        const char *e;
+
+        if (ed.search.last) {
+                search_next();
+                return;
+        }
+
+        tmp = tempnam(NULL, "ted-");
+        if (!tmp) {
+                echo_error("Failed to start search");
+                return;
+        }
+
+        int fd = open(tmp, O_CREAT | O_WRONLY | O_EXCL, S_IRUSR | S_IWUSR);
+        if (fd < 0) {
+                echo_error("Failed to start search");
+                free(tmp);
+                return;
+        }
+
+        write_buffer_to_file(fd);
+
+        if (close(fd)) {
+                echo_error("Failed to start search");
+                free(tmp);
+                return;
+        }
+
+        if ((e = getenv("TED_SEARCH")))
+                snprintf(cmd, CMD_MAX, "%s \'%s\' %zd", e, tmp, ed.nlines+1);
+        else
+                snprintf (
+                        cmd, CMD_MAX,
+                        "read -p 'Query: ' query; "
+                        "grep -b -F \"$query\" \'%s\' | cut -d: -f1 ",
+                        tmp
+                );
+
+        free(tmp);
+
+        emit_clear_screen();
+        terminal_reset();
+
+        FILE *sout;
+        int r = 1;
+        if ((sout = popen(cmd, "r"))) {
+                ed.search.last = 0;
+                while (!feof(sout))
+                        if (fscanf(sout, "%zd\n", &ed.search.results[ed.search.last]) == 1)
+                                ++ed.search.last;
+                        else
+                                break;
+
+                r = pclose(sout);
+        }
+
+        terminal_setup();
+        reserve_screen();
+        refresh();
+
+        if (r) {
+                echo_info("Search failed");
+                ed.preserve_echo = true;
+        } else if (!ed.search.last) {
+                echo_info("No results");
+                ed.preserve_echo = true;
+        } else {
+                do_push_mark(where());
+                move_to(ed.search.results[ed.search.current = 0]);
+        }
+}
+
+void search_quit()
+{
+        ed.search.last = 0;
+}
+
 void quit()
 {
         if (ed.is_dirty) {
@@ -2536,6 +2654,9 @@ const struct keymap_entry global_keymap[] = {
         {"C-n", CMD(next_row)},
         {"C-o", CMD(open_line)},
         {"C-p", CMD(previous_row)},
+        {"C-q", CMD(search_quit)},
+        {"C-r", CMD(search_previous)},
+        {"C-s", CMD(search_buffer)},
         {"C-v", CMD(scroll_up)},
         {"C-w", CMD(kill_region)},
         {"C-x", MAP(extended_keymap)},
