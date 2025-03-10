@@ -2210,13 +2210,22 @@ bool timespec_lt(struct timespec a, struct timespec b)
         return a.tv_sec < b.tv_sec || a.tv_nsec < b.tv_nsec;
 }
 
+void write_buffer_to_file(int fd)
+{
+        uint8_t buf[BUFSIZE] = {0};
+        size_t i = 0;
+
+        for_each_block(buf, BUFSIZE, i, {
+                if (write_all(fd, buf, i))
+                        return;
+        });
+}
+
 void save_buffer()
 {
         maybe_insert_trailing_newline();
 
         char pathbuf[PATH_MAX];
-        uint8_t buf[BUFSIZE] = {0};
-        size_t i = 0;
 
         int fd = open_save_file(ed.dirname, ed.basename, pathbuf, PATH_MAX);
         if (fd < 0) {
@@ -2227,10 +2236,7 @@ void save_buffer()
                 }
         }
 
-        for_each_block(buf, BUFSIZE, i, {
-                if (write_all(fd, buf, i))
-                        return;
-        });
+        write_buffer_to_file(fd);
 
         if (close(fd)) {
                 echo_error("Failed to save file.");
