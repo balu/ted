@@ -2471,10 +2471,13 @@ void search_previous()
         if (!ed.search.last)
                 return;
 
-        if (ed.search.current == 0)
+        if (ed.search.current == 0) {
+                echo_info("Wrapped backward search");
+                ed.preserve_echo = true;
                 ed.search.current = ed.search.last - 1;
-        else
+        } else {
                 --ed.search.current;
+        }
 
         move_to(ed.search.results[ed.search.current]);
 }
@@ -2485,8 +2488,11 @@ void search_next()
                 return;
 
         ++ed.search.current;
-        if (ed.search.current == ed.search.last)
+        if (ed.search.current == ed.search.last) {
+                echo_info("Wrapped search");
+                ed.preserve_echo = true;
                 ed.search.current = 0;
+        }
 
         move_to(ed.search.results[ed.search.current]);
 }
