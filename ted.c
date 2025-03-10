@@ -2494,7 +2494,7 @@ void search_next()
 void search_buffer()
 {
         char cmd[CMD_MAX];
-        char *tmp;
+        char tmp[] = "/tmp/ted-search-XXXXXX";
         const char *e;
 
         if (ed.search.last) {
@@ -2502,16 +2502,9 @@ void search_buffer()
                 return;
         }
 
-        tmp = tempnam(NULL, "ted-");
-        if (!tmp) {
-                echo_error("Failed to start search");
-                return;
-        }
-
-        int fd = open(tmp, O_CREAT | O_WRONLY | O_EXCL, S_IRUSR | S_IWUSR);
+        int fd = mkstemp(tmp);
         if (fd < 0) {
                 echo_error("Failed to start search");
-                free(tmp);
                 return;
         }
 
@@ -2519,7 +2512,6 @@ void search_buffer()
 
         if (close(fd)) {
                 echo_error("Failed to start search");
-                free(tmp);
                 return;
         }
 
@@ -2532,8 +2524,6 @@ void search_buffer()
                         "grep -b -F \"$query\" \'%s\' | cut -d: -f1 ",
                         tmp
                 );
-
-        free(tmp);
 
         emit_clear_screen();
         terminal_reset();
@@ -2550,6 +2540,8 @@ void search_buffer()
 
                 r = pclose(sout);
         }
+
+        unlink(tmp);
 
         terminal_setup();
         reserve_screen();
