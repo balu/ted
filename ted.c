@@ -2516,14 +2516,13 @@ void search_buffer()
         }
 
         if ((e = getenv("TED_SEARCH")))
-                snprintf(cmd, CMD_MAX, "%s \'%s\' %zd", e, tmp, ed.nlines+1);
+                snprintf(cmd, CMD_MAX, "%s \'%s\' %zd", e, tmp, ed.nlines + 1);
         else
-                snprintf (
-                        cmd, CMD_MAX,
-                        "read -p 'Query: ' query; "
-                        "grep -b -F \"$query\" \'%s\' | cut -d: -f1 ",
-                        tmp
-                );
+                snprintf(cmd, CMD_MAX,
+                         "read -p 'Query: ' query; "
+                         "printf '\\e[F\\e[J' > /dev/tty; "
+                         "grep -b -F \"$query\" \'%s\' | cut -d: -f1 ",
+                         tmp);
 
         emit_clear_screen();
         terminal_reset();
