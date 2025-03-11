@@ -934,6 +934,15 @@ void echo_info(const char *message, ...)
         restore_cursor();
 }
 
+void echo_info_preserve(const char *message, ...)
+{
+        va_list args;
+        va_start(args, message);
+        echo_info(message, args);
+        ed.preserve_echo = true;
+        va_end(args);
+}
+
 void emit_clear_screen()
 {
         goto_(ed.screen_begin);
@@ -2270,8 +2279,7 @@ void save_buffer()
 
         unlink(pathbuf);
 
-        echo_info("Wrote %s", ed.filename);
-        ed.preserve_echo = true;
+        echo_info_preserve("Wrote %s", ed.filename);
         ed.is_dirty = false;
         if (!stat(ed.filename, &st))
                 ed.mtime = st.st_mtim;
@@ -2455,15 +2463,13 @@ void show_line_column()
                 t = advance(t);
         }
 
-        echo_info("L%uC%u", line_no, col_no);
-        ed.preserve_echo = true;
+        echo_info_preserve("L%uC%u", line_no, col_no);
 }
 
 void toggle_read_only_mode()
 {
         ed.is_read_only = !ed.is_read_only;
-        echo_info("Read-Only mode %s.", ed.is_read_only ? "enabled" : "disabled");
-        ed.preserve_echo = true;
+        echo_info_preserve("Read-Only mode %s.", ed.is_read_only ? "enabled" : "disabled");
 }
 
 void search_previous()
@@ -2472,8 +2478,7 @@ void search_previous()
                 return;
 
         if (ed.search.current == 0) {
-                echo_info("Wrapped backward search");
-                ed.preserve_echo = true;
+                echo_info_preserve("Wrapped backward search");
                 ed.search.current = ed.search.last - 1;
         } else {
                 --ed.search.current;
@@ -2489,8 +2494,7 @@ void search_next()
 
         ++ed.search.current;
         if (ed.search.current == ed.search.last) {
-                echo_info("Wrapped search");
-                ed.preserve_echo = true;
+                echo_info_preserve("Wrapped search");
                 ed.search.current = 0;
         }
 
@@ -2553,11 +2557,9 @@ void search_buffer()
         refresh();
 
         if (r) {
-                echo_info("Search failed");
-                ed.preserve_echo = true;
+                echo_info_preserve("Search failed");
         } else if (!ed.search.last) {
-                echo_info("No results");
-                ed.preserve_echo = true;
+                echo_info_preserve("No results");
         } else {
                 do_push_mark(where());
                 move_to(ed.search.results[ed.search.current = 0]);
