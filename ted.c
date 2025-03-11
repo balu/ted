@@ -2529,9 +2529,10 @@ void search_buffer()
                 snprintf(cmd, CMD_MAX, "%s \'%s\' %zd", e, tmp, ed.nlines + 1);
         else
                 snprintf(cmd, CMD_MAX,
+                         "printf '\\e[s' > /dev/tty; "
                          "read -p 'Query: ' query; "
-                         "printf '\\e[F\\e[J' > /dev/tty; "
-                         "grep -b -F \"$query\" \'%s\' | cut -d: -f1 ",
+                         "printf '\\e[u\\e[J' > /dev/tty; "
+                         "grep -bo -F \"$query\" \'%s\' | cut -d: -f1 ",
                          tmp);
 
         emit_clear_screen();
