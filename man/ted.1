@@ -1,0 +1,241 @@
+.Dd March 12, 2025
+.Dt TED 1
+.Os
+.Sh NAME
+.Nm ted
+.Nd text editor
+.Sh SYNOPSIS
+.Nm ted
+.Op Fl c Ar COLS
+.Op Fl f Cm unix | dos
+.Op Fl r Ar ROWS
+.Op Fl t Ar TABS
+.Ar FILE
+.Sh DESCRIPTION
+.Nm
+is a console-based plain-text editor.
+.Pp
+The options are as follows:
+.Bl -tag -width Ds
+.It Fl c Ar COLS
+Use COLS columns per row to display text (Default: 72).
+.Pp
+A newline is considered as a single character and uses a column.
+.Pp
+If a line wraps, then the COLS+1 column is used to display a
+continuation line marker (Default: red backslash).
+.It Fl f Cm unix | dos
+Use unix or dos line endings as specified.
+If the file contains a line ending that does not match, it is an
+error (Default: unix).
+.It Fl r Ar ROWS
+Use ROWS rows to display text (Default: 10).
+.Pp
+If there is no text to display on a row, display an empty line marker
+(Default: blue tilde) on that row.
+.Pp
+The ROWS+1 row is used to display the echo area.
+.It Fl t Ar TABS
+Use TABS columns per tabstop (Default: 8).
+.El
+.Sh KEYCHORDS
+Typing letters, numbers, and special characters inserts them into the
+buffer at the point.
+.Pp
+Commands to the editor are given by pressing keys along with
+modifiers or pressing other special keys on the keybord.
+Modifiers are indicated as follows:
+.Bl -tag -width Ds
+.It C-
+Control
+.It M-
+Meta or Alt
+.It S-
+Shift
+.It s-
+Super or Windows
+.El
+.Pp
+Combinations of modifiers are indicated by combining the above
+indicators.
+For example, "C-M-a" indicates typing "a" while holding down control
+and alt keys; "M-O" is the same as "M-S-o".
+.Pp
+Special keys such as arrow keys are indicated by enclosing the key
+name within "<" and ">".
+For example, "<up>" indicates the up arrow key.
+.Pp
+Commands are issued using sequences of keybindings called
+keychords.
+Many commands take a prefix argument.
+The prefix argument is either a flag or a number.
+To specify a flag prefix argument, type "C-u" before the keychord for
+the command.
+To specify a number prefix argument, type "C-u NUM" the keychord for
+the command.
+The FLAG argument is usually used to modify the default behaviour and
+NUM argument is usually used as a repeat count.
+.Pp
+The command keychords are as follows:
+.Bl -tag -width Ds
+.It <down>
+Move the point to the next row.
+A NUM argument repeats the command NUM times.
+.It <end>
+Move the point to the end of the current row.
+.It <home>
+Move the point to the beginning of the current row.
+.It <left>
+Move the point to the previous character.
+A NUM argument repeats the command NUM times.
+.It <next>
+Page down.
+A NUM argument repeats the command NUM times.
+.It <prior>
+Page up.
+A NUM argument repeats the command NUM times.
+.It <right>
+Move the point to the next character.
+A NUM argument repeats the command NUM times.
+.It C-<down>
+Move the point a section forward.
+.It C-<left>
+Move the point to a word backward.
+.It C-<right>
+Move the point a word forward.
+.It C-<space>
+Set a new mark at the current point.
+.It C-<up>
+Move the point a section backward.
+.It C-a
+Move the point to the first column in the current row.
+.It C-b
+Move the point to the previous character.
+A NUM argument repeats the command NUM times.
+.It C-e
+Move the point to the last column in the current row.
+.It C-f
+Move the point to the next character.
+A NUM argument repeats the command NUM times.
+.It C-g
+Cancel command and/or deactivate mark.
+.It C-n
+Move the point to the next row.
+A NUM argument repeats the command NUM times.
+.It C-o
+Insert a newline character at point.
+The point will be at the newly inserted newline character after this
+command.
+.It C-p
+Move the point to the previous row.
+A NUM argument repeats the command NUM times.
+.It C-q
+Cancel current search.
+.It C-r
+Move the point to the previous search result.
+.It C-s
+Move the point to the next search result.
+If there are no active search results, start a search.
+.It C-v
+Scroll up.
+.It C-w
+Cut or yank selected text into the kill buffer.
+.It C-y
+Paste text in the kill buffer.
+.It C-z
+Suspend the editor and return to the terminal.
+The editor can be resumed using `fg'.
+.It M-%
+Move the point to NUM% location in the buffer.
+.It M-<
+Move the point to the beginning of the buffer.
+.It M->
+Move the point to the end of the buffer.
+.It M-a
+Move the point to the beginning of the current line.
+.It M-b
+Move the point to the beginning of the word.
+.It M-e
+Move the point to the end of the current line.
+.It M-f
+Move the point to the end of the word.
+.It M-g
+Go to line given as the NUM argument.
+.It M-O
+Open a blank line before the current line and move the point to the
+beginning of the new line.
+.It M-o
+Open a blank line after the current line and move the point to the
+beginning of the new line.
+.It M-v
+Scroll down.
+.It M-w
+Copy selected text into kill buffer.
+.It S-<down>
+Set mark and go to next row.
+.It S-<left>
+Set mark and go to previous character.
+.It S-<right>
+Set mark and go to next character.
+.It S-<up>
+Set mark and go to previous row.
+.It C-M-b
+Move the point to the beginning of the section.
+.It C-M-f
+Move the point to the end of the section.
+.It C-S-<down>
+Add a new mark and move the point to the end of the section.
+.It C-S-<left>
+Add a new mark and move the point to the beginning of the word.
+.It C-S-<right>
+Add a new mark and move the point to the end of the word.
+.It C-S-<up>
+Add a new mark and move the point to the beginning of the section.
+.It C-x =
+Show line and column number of point.
+.It C-x C-c
+Exit with status 0.
+Fails if buffer is not saved.
+With a FLAG argument, save buffer and quit.
+.It C-x C-n
+Set the current column as the goal column.
+The point gravitates towards the goal column when moving across rows.
+Useful for editing vertically aligned columns of text.
+.Pp
+With a FLAG argument, remove the goal column.
+.It C-x C-s
+Save the buffer to file.
+.It C-x C-q
+Toggle read-only mode.
+.It C-x M-c
+Exit with status 1.
+.El
+.Sh ENVIRONMENT
+.Bl -tag -width Ds
+.It Ev TED_SEARCH
+A command to search the buffer.
+The command is called as:
+.Bd -literal -offset indent
+<cmd> <file> <rows>
+.Ed
+.Pp
+where <file> is a temporary file that contains the current contents of
+the buffer and <rows> is the ROWS argument.
+.Pp
+The command should output search results as byte offsets on the
+standard output.
+There should be one result per line.
+.Pp
+If this variable is unset, use `grep -F' to search the buffer.
+.El
+.Sh EXIT STATUS
+If exited with "C-x C-c" or "C-u C-x C-c", then 0.
+If exited with "C-x M-c", then 1.
+If exited due to any error, then 1.
+.Sh SEE ALSO
+.Rs
+.%B Git repository for ted
+.%U https://github.com/balu/ted
+.Re
+.Sh AUTHORS
+.An Balagopal Komarath Aq Mt bkomarath@rbgo.in
