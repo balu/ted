@@ -57,6 +57,8 @@
                         return; \
         } while (0)
 
+#define min(a, b) (((a) < (b)) ? (a) : (b))
+
 enum {
         NEWLINE = 0,
         UTF8 = 1,
@@ -402,8 +404,8 @@ struct key read_key()
         uint8_t buf[16] = {0};
 
         ssize_t nread = read(STDIN_FILENO, buf, sizeof(buf));
-        assert(nread > 0);
-        buf[nread] = 0;
+        assert(nread > 0); // TODO: Exit gracefully.
+        buf[min(nread, 15)] = 0;
 
         switch (buf[0]) {
         case 0x00:
