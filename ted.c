@@ -936,14 +936,11 @@ void echo_info(const char *message, ...)
         restore_cursor();
 }
 
-void echo_info_preserve(const char *message, ...)
-{
-        va_list args;
-        va_start(args, message);
-        echo_info(message, args);
-        ed.preserve_echo = true;
-        va_end(args);
-}
+#define echo_info_preserve(message, ...)                \
+        do {                                            \
+                echo_info(message, ##__VA_ARGS__);      \
+                ed.preserve_echo = true;                \
+        } while (0)
 
 void emit_clear_screen()
 {
@@ -2281,7 +2278,7 @@ void save_buffer()
 
         unlink(pathbuf);
 
-        echo_info_preserve("Wrote %s", ed.filename);
+        echo_info_preserve("Wrote \'%s\'", ed.filename);
         ed.is_dirty = false;
         if (!stat(ed.filename, &st))
                 ed.mtime = st.st_mtim;
