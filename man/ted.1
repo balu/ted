@@ -1,4 +1,4 @@
-.Dd March 12, 2025
+.Dd March 18, 2025
 .Dt TED 1
 .Os
 .Sh NAME
@@ -8,6 +8,7 @@
 .Nm ted
 .Op Fl c Ar COLS
 .Op Fl f Cm unix | dos
+.Op Fl g Cm first | last | Ar NUM
 .Op Fl r Ar ROWS
 .Op Fl t Ar TABS
 .Ar FILE
@@ -28,6 +29,10 @@ continuation line marker (Default: red backslash).
 Use unix or dos line endings as specified.
 If the file contains a line ending that does not match, it is an
 error (Default: unix).
+.It Fl g Cm first | last | Ar NUM
+Start with point at the specified location (Default: first).
+If NUM is specified, start at the NUMth character in the file, where
+the first character in the file is the zeroth character.
 .It Fl r Ar ROWS
 Use ROWS rows to display text (Default: 10).
 .Pp

@@ -815,6 +815,12 @@ void lf()
 struct {
         size_t nlines;
         size_t ncols;
+        struct {
+                struct {
+                        enum { FIRST, LAST, OFFSET } k;
+                        size_t offset;
+                } position;
+        } options;
         struct position screen_begin;
         struct position echo_begin;
         bool is_prefix;
@@ -2794,10 +2800,13 @@ static void print_usage_and_exit()
 {
         fprintf(stderr, "Usage: ted [OPTION] FILE\n");
         fprintf(stderr, "Edit FILE on the terminal.\n\n");
-        fprintf(stderr, "  -r ROWS\tShow ROWS lines at a time.\n");
         fprintf(stderr, "  -c COLS\tShow COLS columns per screen line.\n");
-        fprintf(stderr, "  -t TABS\tUse TABS columns for each tabstop.\n");
         fprintf(stderr, "  -f unix|dos\tUse unix or dos line-endings.\n");
+        fprintf(stderr, "  -g first\tStart with point at the beginning.\n");
+        fprintf(stderr, "  -g last\tStart with point at the end.\n");
+        fprintf(stderr, "  -g NUM\tStart with point at the NUMth character.\n");
+        fprintf(stderr, "  -r ROWS\tShow ROWS lines at a time.\n");
+        fprintf(stderr, "  -t TABS\tUse TABS columns for each tabstop.\n");
         exit(EXIT_FAILURE);
 }
 
@@ -2811,7 +2820,8 @@ void editor_config_init(int argc, char *argv[])
         ed.ncols = DEFAULT_NCOLS;
         ed.tabstop = DEFAULT_TABSTOP;
         ed.filetype = DEFAULT_FILETYPE;
-        while ((c = getopt(argc, argv, "r:c:t:f:")) != -1) {
+        ed.options.position.k = FIRST;
+        while ((c = getopt(argc, argv, "r:c:t:f:g:")) != -1) {
                 switch (c) {
                 case 'r':
                         if (!*optarg)
@@ -2853,6 +2863,21 @@ void editor_config_init(int argc, char *argv[])
                         else
                                 print_usage_and_exit();
                         break;
+                case 'g':
+                        if (!*optarg)
+                                print_usage_and_exit();
+                        if (!strcmp(optarg, "first")) {
+                                ed.options.position.k = FIRST;
+                        } else if (!strcmp(optarg, "last")) {
+                                ed.options.position.k = LAST;
+                        } else {
+                                char *endptr;
+
+                                ed.options.position.k = OFFSET;
+                                ed.options.position.offset = strtoul(optarg, &endptr, 10);
+                                if (*endptr)
+                                        print_usage_and_exit();
+                        }
                 }
         }
 }
@@ -2874,6 +2899,21 @@ int main(int argc, char *argv[])
         terminal_setup();
 
         reserve_screen();
+
+        refresh();
+
+        switch (ed.options.position.k) {
+        case FIRST:
+                break;
+        case LAST:
+                end_of_buffer();
+                break;
+        case OFFSET:
+                move_to(ed.options.position.offset);
+                break;
+        default:
+                assert(false);
+        }
 
         main_loop();
 
