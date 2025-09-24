@@ -2560,7 +2560,7 @@ void search_buffer()
         if ((sout = popen(cmd, "r"))) {
                 ed.search.last = 0;
                 while (!feof(sout))
-                        if (fscanf(sout, "%zd\n", &ed.search.results[ed.search.last]) == 1)
+                        if (fscanf(sout, "%zu\n", &ed.search.results[ed.search.last]) == 1)
                                 ++ed.search.last;
                         else
                                 break;
