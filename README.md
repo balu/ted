@@ -92,3 +92,11 @@ The command `C-x C-n` can be used to set the current column as the
 *goal column*. The cursor will gravitate towards this column on motion
 commands. This is helpful for editing vertically aligned text. With a
 prefix argument, it cancels the forced goal column.
+
+# Debugging
+
+Start `ted` on a terminal and press `C-u`. Note its PID. Start GDB in
+another terminal. Set breakpoint. Use `attach PID`. Go back to `ted`
+and cancel prefix by using `C-g`. Start debugging.
+
+Without the initial `C-u`, `read_key()` fails by reading zero bytes.
