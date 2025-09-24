@@ -1873,6 +1873,8 @@ void goto_line()
         if (!ed.is_prefix || ed.prefix_arg < 1)
                 line_no = 1;
 
+        ed.is_prefix = false;
+
         beginning_of_buffer();
         while (--line_no) {
                 end_of_line();
