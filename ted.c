@@ -369,6 +369,8 @@ struct key scan_escape(uint8_t buf[])
                 return k;
         }
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
         switch (buf[0]) {
         case 0x00 ... 0x19: // TODO: seems to generate C-M-[a-zA-Z]. Why?
                 k.ctrl = 1;
@@ -396,6 +398,7 @@ struct key scan_escape(uint8_t buf[])
         default:
                 assert(0);
         }
+#pragma GCC diagnostic pop
 }
 
 struct key read_key()
@@ -407,6 +410,8 @@ struct key read_key()
         assert(nread > 0); // TODO: Exit gracefully.
         buf[min(nread, 15)] = 0;
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
         switch (buf[0]) {
         case 0x00:
                 k.ctrl = 1;
@@ -449,6 +454,7 @@ struct key read_key()
                 utf8_char_copy(k.u.c, buf);
                 return k;
         }
+#pragma GCC diagnostic pop
 }
 
 const char *process_modifiers(const char *s, struct key *k)
@@ -594,6 +600,8 @@ struct key kbd(const char *s)
                 return k;
 
         if (k.ctrl && !k.meta && !k.super && !k.shift)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
                 switch (*s) {
                 case 'g':
                         k.ctrl = 0;
@@ -610,6 +618,7 @@ struct key kbd(const char *s)
         default:
                 assert(0);
         }
+#pragma GCC diagnostic pop
 }
 
 bool is_digit(struct key k)
@@ -880,6 +889,8 @@ void sanitize(char buf[])
 {
         size_t i = 0;
         while (buf[i]) {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
                 switch (buf[i]) {
                 case 0x20 ... 0x7e:
                         ++i;
@@ -888,6 +899,7 @@ void sanitize(char buf[])
                         buf[i] = '?';
                         ++i;
                 }
+#pragma GCC diagnostic pop
         }
         buf[ed.ncols] = 0;
 }
