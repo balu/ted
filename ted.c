@@ -954,10 +954,10 @@ void echo_info(const char *message, ...)
         restore_cursor();
 }
 
-#define echo_info_preserve(message, ...)                \
-        do {                                            \
-                echo_info(message, ##__VA_ARGS__);      \
-                ed.preserve_echo = true;                \
+#define echo_info_preserve(message, ...)           \
+        do {                                       \
+                echo_info(message, ##__VA_ARGS__); \
+                ed.preserve_echo = true;           \
         } while (0)
 
 void emit_clear_screen()
@@ -2635,15 +2635,9 @@ void suspend()
 
 const char *prog;
 
-#define CMD(c)                               \
-        {                                    \
-                .is_command = true, .cmd = c \
-        }
+#define CMD(c) {.is_command = true, .cmd = c}
 
-#define MAP(m)                                   \
-        {                                        \
-                .is_command = false, .nested = m \
-        }
+#define MAP(m) {.is_command = false, .nested = m}
 
 struct keymap_entry {
         const char *k;
