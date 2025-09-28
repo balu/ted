@@ -2,8 +2,8 @@
 
 Screen editors like vi, vim, nano, micro, and others take over the
 entire terminal. Line editors like ed allow you to see terminal history
-by scrolling but are difficult to use compared to screen editors. ted is
-a screen editor that does not take over your terminal.
+by scrolling but are difficult to use compared to screen editors. ted
+is a screen editor that does not take over your terminal.
 
 # Demo
 
