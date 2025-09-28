@@ -2920,7 +2920,7 @@ int main(int argc, char *argv[])
                 move_to(ed.options.position.offset);
                 break;
         default:
-                assert(false);
+                unreachable();
         }
 
         main_loop();
