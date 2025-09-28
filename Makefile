@@ -7,7 +7,7 @@ ifeq ($(MANPATH),)
 endif
 
 CC=gcc
-CFLAGS=-std=c23 -Wall -Wextra -Wpedantic -Werror
+CFLAGS=-std=gnu23 -Wall -Wextra -Wpedantic -Werror
 
 .PHONY: fast small safe install
 
