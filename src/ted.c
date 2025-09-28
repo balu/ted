@@ -2837,7 +2837,7 @@ void editor_config_init(int argc, char *argv[])
                         rows = strtol(optarg, &endptr, 10);
                         if (*endptr)
                                 print_usage_and_exit();
-                        if (rows < MIN_NLINES || rows > MAX_NCOLS)
+                        if (rows < MIN_NLINES || rows > MAX_NLINES)
                                 print_usage_and_exit();
                         ed.nlines = rows;
                         break;
