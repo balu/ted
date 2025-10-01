@@ -2044,6 +2044,35 @@ void open_next_line()
         }
 }
 
+static void copy_indent_of_line(struct tedchar *indent, size_t *i)
+{
+        size_t save = where();
+
+        beginning_of_line();
+        *i = 0;
+        while (!is_point_at_end_of_buffer() &&
+               (is_space(current_char()) || is_tab(current_char()))) {
+                indent[(*i)++] = current_char();
+                forward_char();
+        }
+
+        move_to(save);
+}
+
+void newline_and_indent()
+{
+        guard(!ed.is_read_only);
+
+        struct tedchar indent[LINE_MAX + 1];
+        size_t i = 0;
+
+        copy_indent_of_line(indent, &i);
+
+        do_insert_char(tedchar_newline());
+        for (size_t j = 0; j < i; ++j)
+                do_insert_char(indent[j]);
+}
+
 void open_previous_line()
 {
         guard(!ed.is_read_only);
@@ -2663,6 +2692,7 @@ const struct keymap_entry global_keymap[] = {
         {"C-d", CMD(delete_char)},
         {"C-e", CMD(end_of_row)},
         {"C-f", CMD(forward_char)},
+        {"C-j", CMD(newline_and_indent)},
         {"C-n", CMD(next_row)},
         {"C-o", CMD(open_line)},
         {"C-p", CMD(previous_row)},
