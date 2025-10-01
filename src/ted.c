@@ -33,7 +33,10 @@
 
 #define DEFAULT_FILETYPE (UNIX)
 
+#define DEFAULT_INDENT ((uint8_t *)"\t")
+
 #define MARK_RING_SIZE (16)
+#define TEMP_MARKS_SIZE (16)
 
 #define SEARCH_SIZE (100)
 
@@ -143,6 +146,12 @@ void utf8_char_copy(uint8_t *dest, uint8_t *src)
         }
 }
 
+void tedchar_from_utf8(struct tedchar *t, uint8_t *src)
+{
+        t->kind = UTF8;
+        utf8_char_copy(t->u.c, src);
+}
+
 bool utf8_eq(struct utf8 u1, struct utf8 u2)
 {
         size_t n1 = utf8_count(u1.c);
@@ -156,6 +165,17 @@ bool utf8_eq(struct utf8 u1, struct utf8 u2)
                         return false;
 
         return true;
+}
+
+static bool tedchar_eq(struct tedchar t1, struct tedchar t2)
+{
+        if (t1.kind != t2.kind)
+                return false;
+
+        if (t1.kind == NEWLINE && t2.kind == NEWLINE)
+                return true;
+
+        return utf8_eq(t1.u, t2.u);
 }
 
 enum {
@@ -225,6 +245,7 @@ bool key_eq(struct key k1, struct key k2)
 struct key scan_cs(uint8_t buf[])
 {
         bool found_n = false, found_m = false;
+        int code = 0;
         struct key k = {0};
 
         k.n = 0;
@@ -248,6 +269,14 @@ struct key scan_cs(uint8_t buf[])
         }
         if (!found_m)
                 k.m = 1;
+
+        if (*buf == ';') {
+                ++buf;
+                while (*buf && '0' <= *buf && *buf <= '9') {
+                        code = code * 10 + (*buf - '0');
+                        ++buf;
+                }
+        }
 
         assert(*buf);
         switch (*buf) {
@@ -300,6 +329,9 @@ struct key scan_cs(uint8_t buf[])
                         break;
                 case 24:
                         k.special = F12;
+                        break;
+                case 27:
+                        k.special = code;
                         break;
                 default:
                         unreachable();
@@ -826,6 +858,10 @@ struct {
                         enum { FIRST, LAST, OFFSET } k;
                         size_t offset;
                 } position;
+                struct {
+                        struct tedchar c[LINE_MAX];
+                        size_t len;
+                } indent;
         } options;
         struct position screen_begin;
         struct position echo_begin;
@@ -856,6 +892,10 @@ struct {
                 size_t current;
                 bool is_active;
         } marks;
+        struct {
+                size_t m[TEMP_MARKS_SIZE];
+                size_t len;
+        } temp_marks;
         struct {
                 size_t results[SEARCH_SIZE];
                 size_t last;
@@ -1294,6 +1334,60 @@ size_t index_of(struct tedchar *t)
                 return (ed.gap_start - ed.buffer) + (t - ed.gap_end);
 }
 
+size_t where()
+{
+        if (is_point_at_end_of_buffer())
+                return buffer_size();
+        return index_of(char_at_point());
+}
+
+static size_t new_temp_mark()
+{
+        ed.temp_marks.m[ed.temp_marks.len++] = where();
+        return ed.temp_marks.len - 1;
+}
+
+static size_t position_of_temp_mark(size_t temp_mark)
+{
+        return ed.temp_marks.m[temp_mark];
+}
+
+static void free_temp_mark(size_t temp_mark)
+{
+        assert(ed.temp_marks.len - 1 == temp_mark);
+        --ed.temp_marks.len;
+}
+
+static void update_marks_after_insert(size_t point)
+{
+        size_t *marks = ed.marks.m;
+
+        for (size_t i = 0; i < ed.marks.len; ++i) {
+                size_t j = (ed.marks.first + i) % MARK_RING_SIZE;
+                if (marks[j] >= point)
+                        ++marks[j];
+        }
+
+        for (size_t i = 0; i < ed.temp_marks.len; ++i)
+                if (ed.temp_marks.m[i] >= point)
+                        ++ed.temp_marks.m[i];
+}
+
+static void update_marks_after_delete(size_t point)
+{
+        size_t *marks = ed.marks.m;
+
+        for (size_t i = 0; i < ed.marks.len; ++i) {
+                size_t j = (ed.marks.first + i) % MARK_RING_SIZE;
+                if (marks[j] > point)
+                        --marks[j];
+        }
+
+        for (size_t i = 0; i < ed.temp_marks.len; ++i)
+                if (ed.temp_marks.m[i] > point)
+                        --ed.temp_marks.m[i];
+}
+
 size_t col_of(struct tedchar *p)
 {
         assert(p);
@@ -1343,13 +1437,6 @@ struct tedchar *first_of_visual_line(struct tedchar *p)
         }
 
         return r;
-}
-
-size_t where()
-{
-        if (is_point_at_end_of_buffer())
-                return buffer_size();
-        return index_of(char_at_point());
 }
 
 void point_mark_low_high(size_t *low, size_t *high)
@@ -1971,6 +2058,8 @@ void do_insert_char(struct tedchar t)
 {
         ed.is_dirty = true;
 
+        size_t p = where();
+
         if (ed.gap_start < ed.gap_end) {
                 *ed.gap_start = t;
                 if (ed.cursor_row == 0 && ed.cursor_col == 0)
@@ -1988,6 +2077,8 @@ void do_insert_char(struct tedchar t)
         } else {
                 unreachable(); // TODO: Re-allocate or save and quit.
         }
+
+        update_marks_after_insert(p);
 }
 
 void insert_char()
@@ -2073,6 +2164,39 @@ void newline_and_indent()
                 do_insert_char(indent[j]);
 }
 
+void indent_current_line()
+{
+        guard(!ed.is_read_only);
+
+        size_t original = new_temp_mark();
+
+        beginning_of_line();
+        size_t line_start = new_temp_mark();
+
+        backward_char();
+
+        move_to(position_of_temp_mark(line_start));
+        for (size_t j = 0; j < ed.options.indent.len; ++j)
+                do_insert_char(ed.options.indent.c[j]);
+        move_to(position_of_temp_mark(original));
+
+        free_temp_mark(line_start);
+        free_temp_mark(original);
+}
+
+static bool point_matches(struct tedchar *s, size_t len)
+{
+        size_t j = where();
+        for (size_t i = 0; i < len; ++i) {
+                struct tedchar *cj = char_at_index(j);
+                if (!cj)
+                        return false;
+                if (!tedchar_eq(s[i], *cj))
+                        return false;
+        }
+        return true;
+}
+
 void open_previous_line()
 {
         guard(!ed.is_read_only);
@@ -2101,8 +2225,9 @@ void delete_char()
 
                 ed.is_dirty = true;
 
-                if (ed.cursor_row == ed.nlines - 1 &&
-                    next_col(current_char(), ed.cursor_col) == 0)
+                size_t p = where();
+
+                if (ed.cursor_row == ed.nlines - 1 && next_col(current_char(), ed.cursor_col) == 0)
                         scroll_up();
 
                 if (ed.tl == ed.gap_end) {
@@ -2110,7 +2235,25 @@ void delete_char()
                 }
 
                 ++ed.gap_end;
+                update_marks_after_delete(p);
         }
+}
+
+void dedent_current_line()
+{
+        guard(!ed.is_read_only);
+
+        size_t original = new_temp_mark();
+
+        beginning_of_line();
+        struct tedchar *s = &ed.options.indent.c[0];
+        size_t len = ed.options.indent.len;
+        if (point_matches(s, len))
+                for (size_t i = 0; i < len; ++i)
+                        delete_char();
+
+        move_to(position_of_temp_mark(original));
+        free_temp_mark(original);
 }
 
 void delete_region()
@@ -2708,12 +2851,14 @@ const struct keymap_entry global_keymap[] = {
         {"C-<left>", CMD(backward_word)},
         {"C-<right>", CMD(forward_word)},
         {"C-<up>", CMD(backward_paragraph)},
+        {"M-J", CMD(dedent_current_line)},
         {"M-O", CMD(open_previous_line)},
         {"M-a", CMD(beginning_of_line)},
         {"M-b", CMD(backward_word)},
         {"M-e", CMD(end_of_line)},
         {"M-f", CMD(forward_word)},
         {"M-g", CMD(goto_line)},
+        {"M-j", CMD(indent_current_line)},
         {"M-o", CMD(open_next_line)},
         {"M-v", CMD(scroll_down)},
         {"M-w", CMD(kill_region_save)},
@@ -2842,9 +2987,23 @@ static void print_usage_and_exit()
         fprintf(stderr, "  -g first\tStart with point at the beginning.\n");
         fprintf(stderr, "  -g last\tStart with point at the end.\n");
         fprintf(stderr, "  -g NUM\tStart with point at the NUMth character.\n");
+        fprintf(stderr, "  -i INDENT\tUse INDENT as one unit of indent.\n");
         fprintf(stderr, "  -r ROWS\tShow ROWS lines at a time.\n");
         fprintf(stderr, "  -t TABS\tUse TABS columns for each tabstop.\n");
         exit(EXIT_FAILURE);
+}
+
+static void set_indent(uint8_t *s)
+{
+	size_t i = 0;
+	for (i = 0; s[i]; ++i) {
+		if (s[i] != ' ' && s[i] != '\t') {
+			set_indent(DEFAULT_INDENT);
+			return;
+		}
+		ed.options.indent.c[i] = tedchar_utf8(utf8_ascii(s[i]));
+	}
+	ed.options.indent.len = i;
 }
 
 void editor_config_init(int argc, char *argv[])
@@ -2857,8 +3016,9 @@ void editor_config_init(int argc, char *argv[])
         ed.ncols = DEFAULT_NCOLS;
         ed.tabstop = DEFAULT_TABSTOP;
         ed.filetype = DEFAULT_FILETYPE;
+        set_indent(DEFAULT_INDENT);
         ed.options.position.k = FIRST;
-        while ((c = getopt(argc, argv, "r:c:t:f:g:")) != -1) {
+        while ((c = getopt(argc, argv, "r:c:t:f:g:i:")) != -1) {
                 switch (c) {
                 case 'r':
                         if (!*optarg)
@@ -2915,6 +3075,11 @@ void editor_config_init(int argc, char *argv[])
                                 if (*endptr)
                                         print_usage_and_exit();
                         }
+                        break;
+                case 'i':
+                        if (!*optarg)
+                                print_usage_and_exit();
+                        set_indent((uint8_t *)optarg);
                 }
         }
 }

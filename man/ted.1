@@ -33,6 +33,9 @@ error (Default: unix).
 Start with point at the specified location (Default: first).
 If NUM is specified, start at the NUMth character in the file, where
 the first character in the file is the zeroth character.
+.It Fl i Ar INDENT
+Use the string INDENT as a unit of indentation (Default: <Tab>).
+The string INDENT should contain only spaces and tabs.
 .It Fl r Ar ROWS
 Use ROWS rows to display text (Default: 10).
 .Pp
@@ -126,7 +129,7 @@ A NUM argument repeats the command NUM times.
 .It C-g
 Cancel command and/or deactivate mark.
 .It C-j
-Insert newline and indent the next line.
+Insert newline and indent the new line to the same level.
 .It C-n
 Move the point to the next row.
 A NUM argument repeats the command NUM times.
@@ -159,6 +162,11 @@ Move the point to NUM% location in the buffer.
 Move the point to the beginning of the buffer.
 .It M->
 Move the point to the end of the buffer.
+.It M-J
+Decrease indent of the current line by one unit.
+.It M-O
+Open a blank line before the current line and move the point to the
+beginning of the new line.
 .It M-a
 Move the point to the beginning of the current line.
 .It M-b
@@ -169,9 +177,8 @@ Move the point to the end of the current line.
 Move the point to the end of the word.
 .It M-g
 Go to line given as the NUM argument.
-.It M-O
-Open a blank line before the current line and move the point to the
-beginning of the new line.
+.It M-j
+Increase indent of the current line by one unit.
 .It M-o
 Open a blank line after the current line and move the point to the
 beginning of the new line.
