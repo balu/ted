@@ -302,7 +302,7 @@ struct key scan_cs(uint8_t buf[])
                         k.special = F12;
                         break;
                 default:
-                        assert(0);
+                        unreachable();
                 }
                 break;
         case 0xd:
@@ -347,7 +347,7 @@ struct key scan_cs(uint8_t buf[])
                 k.special = HT;
                 return k;
         default:
-                assert(0);
+                unreachable();
         }
 
         k.shift = !!((k.m - 1) & 0x1);
@@ -390,13 +390,13 @@ struct key scan_escape(uint8_t buf[])
                         k.u.c[0] = buf[0];
                         return k;
                 }
-                assert(0);
+                unreachable();
         case 0x7f: /* Non-standard? */
                 k.meta = 1;
                 k.special = BS;
                 return k;
         default:
-                assert(0);
+                unreachable();
         }
 #pragma GCC diagnostic pop
 }
@@ -613,7 +613,7 @@ struct key kbd(const char *s)
                 k.u.c[0] = *s;
                 return k;
         default:
-                assert(0);
+                unreachable();
         }
 #pragma GCC diagnostic pop
 }
@@ -1986,7 +1986,7 @@ void do_insert_char(struct tedchar t)
                 if (!ed.force_goal_col)
                         ed.goal_col = ed.cursor_col;
         } else {
-                assert(0); // TODO: Re-allocate or save and quit.
+                unreachable(); // TODO: Re-allocate or save and quit.
         }
 }
 
