@@ -426,9 +426,6 @@ struct key read_key()
         case 0x09:
                 k.special = HT;
                 return k;
-        case 0x0a:
-                k.special = LF;
-                return k;
         case 0x0c:
                 k.special = FF;
                 return k;
@@ -436,7 +433,7 @@ struct key read_key()
                 k.special = CR;
                 return k;
         case 0x1 ... 0x6:
-        case 0xb:
+        case 0xa ... 0xb:
         case 0xe ... 0x1a: /* Missing in this range are handled above. */
                 k.ctrl = 1;
                 k.u.c[0] = 0x60 + buf[0];
