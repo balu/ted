@@ -1274,6 +1274,8 @@ struct tedchar *char_at_point()
         return ed.gap_end;
 }
 
+#define current_char() (assert(!is_point_at_end_of_buffer()), *char_at_point())
+
 struct tedchar *char_at_index(size_t i)
 {
         if (i >= buffer_size())
@@ -1634,10 +1636,10 @@ void forward_word()
                 if (is_point_at_end_of_buffer())
                         return;
 
-                while (!is_point_at_end_of_buffer() && is_whitespace(*char_at_point()))
+                while (!is_point_at_end_of_buffer() && is_whitespace(current_char()))
                         forward_char();
 
-                while (!is_point_at_end_of_buffer() && !is_whitespace(*char_at_point()))
+                while (!is_point_at_end_of_buffer() && !is_whitespace(current_char()))
                         forward_char();
         }
 }
@@ -1673,13 +1675,13 @@ void backward_word()
                 if (is_point_at_beginning_of_word() || is_point_at_end_of_buffer())
                         backward_char();
 
-                while (is_whitespace(*char_at_point())) {
+                while (is_whitespace(current_char())) {
                         backward_char();
                         if (is_point_at_beginning_of_buffer())
                                 return;
                 }
 
-                while (!is_whitespace(*char_at_point())) {
+                while (!is_whitespace(current_char())) {
                         backward_char();
                         if (is_point_at_beginning_of_buffer())
                                 return;
@@ -1702,12 +1704,12 @@ void forward_paragraph()
                 if (is_point_at_end_of_buffer())
                         return;
 
-                while (!is_point_at_end_of_buffer() && is_whitespace(*char_at_point()))
+                while (!is_point_at_end_of_buffer() && is_whitespace(current_char()))
                         forward_char();
 
                 size_t newline_run = 0;
                 while (!is_point_at_end_of_buffer()) {
-                        if (is_newline(*char_at_point())) {
+                        if (is_newline(current_char())) {
                                 ++newline_run;
                                 if (newline_run == 2)
                                         break;
@@ -1735,16 +1737,16 @@ void backward_paragraph()
 
                 backward_char();
 
-                while (!is_point_at_beginning_of_buffer() && is_whitespace(*char_at_point()))
+                while (!is_point_at_beginning_of_buffer() && is_whitespace(current_char()))
                         backward_char();
 
                 size_t newline_run = 0;
                 while (!is_point_at_beginning_of_buffer()) {
-                        if (is_newline(*char_at_point())) {
+                        if (is_newline(current_char())) {
                                 ++newline_run;
                                 if (newline_run == 2) {
                                         while (!is_point_at_end_of_buffer() &&
-                                               is_whitespace(*char_at_point()))
+                                               is_whitespace(current_char()))
                                                 forward_char();
                                         break;
                                 }
@@ -1841,14 +1843,14 @@ void beginning_of_line()
         if (is_buffer_empty())
                 return;
 
-        if (char_at_point() && is_newline(*char_at_point()))
+        if (char_at_point() && is_newline(current_char()))
                 backward_char();
 
         while (1) {
                 if (is_point_at_beginning_of_buffer())
                         return;
 
-                if (char_at_point() && is_newline(*char_at_point())) {
+                if (char_at_point() && is_newline(current_char())) {
                         forward_char();
                         return;
                 }
@@ -1862,7 +1864,7 @@ void end_of_line()
         if (is_buffer_empty())
                 return;
 
-        while (!is_point_at_end_of_buffer() && !is_newline(*char_at_point()))
+        while (!is_point_at_end_of_buffer() && !is_newline(current_char()))
                 forward_char();
 }
 
@@ -2074,7 +2076,7 @@ void delete_char()
                 ed.is_dirty = true;
 
                 if (ed.cursor_row == ed.nlines - 1 &&
-                    next_col(*char_at_point(), ed.cursor_col) == 0)
+                    next_col(current_char(), ed.cursor_col) == 0)
                         scroll_up();
 
                 if (ed.tl == ed.gap_end) {
